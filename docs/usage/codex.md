@@ -14,7 +14,9 @@ codex mcp add springboot-launcher -- node "D:\tools\springboot-launcher\bin\spri
 
 > 请检查 D:\demo\orders-service 的 Spring Boot 运行条件。使用已有产物，以 local Profile 和 8087 端口启动，不执行构建。打开实时日志面板。
 
-如返回 `BUILD_REQUIRED`，请自行准备产物后再启动。JDK 选择不正确时明确指定 `jdkHome`。MCP 的启动参数包括 `dir`、`profile`、`port`、`jdkHome`、`mode`、`jarPath`、`mainClass`、`classpath`（字符串数组）、`jvmArgs`（字符串数组）；未知字段会被拒绝。
+如返回 `BUILD_REQUIRED`，请自行准备产物后再启动。JDK 选择不正确时明确指定 `jdkHome`。MCP 的启动参数包括 `dir`、`profile`、`port`、`jdkHome`、`mode`、`jarPath`、`mainClass`、`classpath`（字符串数组）、`jvmArgs`（字符串数组）、`healthUrl`；未知字段会被拒绝。
+
+`port` 不填时保留 Spring 配置优先级，不追加端口覆盖，面板会显示未指定端口。需要提前检查端口冲突时明确填写端口。可选 `healthUrl` 例如 `http://127.0.0.1:8087/actuator/health`，只支持无凭据的本机 HTTP 地址；启用后持续依据健康接口判断，DOWN、401、超时不会被启动日志覆盖为健康。
 
 面板工具返回短期本机链接。Codex 桌面版可在浏览器面板打开，CLI 用户可用系统浏览器打开。固定专用侧栏插件不属于首版。链接过期请重新调用工具，不要复制后台控制凭据。
 

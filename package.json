@@ -15,7 +15,8 @@
   "files": [
     "bin/", "src/", "web/", "scripts/", "docs/", "documentation/",
     "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "CONTRIBUTING.md",
-    "SECURITY.md", "CODE_OF_CONDUCT.md", "CHANGELOG.md"
+    "SECURITY.md", "CODE_OF_CONDUCT.md", "CHANGELOG.md",
+    "examples/demo-service/README.md", "examples/demo-service/pom.xml", "examples/demo-service/src/"
   ],
   "dependencies": {
     "@modelcontextprotocol/server": "2.3.1",

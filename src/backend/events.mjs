@@ -10,5 +10,5 @@ export function createEventStream(res,{maxBytes=LIMITS.logBytes,onClose=()=>{}}=
     res.write(frame);return true;
   };
   const heartbeat=setInterval(()=>{if(res.writableLength>maxBytes)close();else if(!closed)res.write(': heartbeat\n\n');},15000);heartbeat.unref();res.once('close',close);
-  return {send,close,get queuedBytes(){return res.writableLength;}};
+  return {send,close,get closed(){return closed;},get queuedBytes(){return res.writableLength;}};
 }

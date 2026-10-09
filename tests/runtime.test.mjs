@@ -23,3 +23,12 @@ test('锁拥有者仍存活时拒绝另建后台',async t=>{
   await writeFile(path.join(home,'backend.lock'),JSON.stringify({ownerPid:process.pid,instanceId:'blocked'}));
   await assert.rejects(ensureBackend({home,timeoutMs:150,spawnBackend:()=>assert.fail('不能产生第二后台')}),{code:'BACKEND_UNAVAILABLE'});
 });
+
+test('两个真实代理同时回收陈旧锁仍只创建一份后台',async t=>{
+  const f=await fixture();const home=path.join(f.root,'stale-home');let connection;
+  t.after(async()=>{if(connection)await fetch(connection.origin+'/api/shutdown',{method:'POST',headers:{Authorization:`Bearer ${connection.token}`},body:'{}'});await new Promise(r=>setTimeout(r,200));await f.cleanup();});
+  await mkdir(home);await writeFile(path.join(home,'.launcher-owned'),'springboot-launcher/v1');await writeFile(path.join(home,'backend.lock'),JSON.stringify({ownerPid:99999999,instanceId:'old'}));
+  const entry=fileURLToPath(new URL('./helpers/connect-worker.mjs',import.meta.url));const results=await Promise.allSettled([exec(process.execPath,[entry,home]),exec(process.execPath,[entry,home])]);
+  for(const result of results)if(result.status==='rejected')throw result.reason;
+  assert.equal(JSON.parse(results[0].value.stdout).instanceId,JSON.parse(results[1].value.stdout).instanceId);assert.equal((await readFile(path.join(home,'spawn-count.txt'),'utf8')).trim(),'spawn');connection=await ensureBackend({home});
+});

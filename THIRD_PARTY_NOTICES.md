@@ -33,4 +33,6 @@ LICENSE 沿用参考工程 Apache License 2.0 文本，保留原有 `Copyright [
 
 ## 图片与其他资源
 
+公开 Java 示例声明 Spring Boot parent、Web MVC 与 Actuator 4.1.1，Apache-2.0，版本及 starter 依据 [Spring 官方入门文档](https://docs.spring.io/spring-boot/tutorial/first-application/index.html)。本次没有解析或下载示例 Maven 依赖，不将其传递依赖视作已完成许可审计；源码和资源为本项目编写，未带入外部 jar。
+
 界面图由本项目实现的页面在隔离模拟环境截取，无外部图片、图标或字体素材。截图不含业务数据。发行包保留本说明、源码修改声明和 LICENSE。再分发遵守 [Apache-2.0 条款](https://www.apache.org/licenses/LICENSE-2.0)。

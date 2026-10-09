@@ -13,5 +13,6 @@
 | CLI、确认参数和帮助 | tests/cli.test.mjs | 不改用户配置 |
 | 序号、快照、缺口、暂停和容量 | tests/web-state.test.mjs | 纯状态测试；另有实际浏览器模拟验证 |
 | 发行包白名单与敏感文件排除 | tests/package.test.mjs | npm pack dry-run，不公开发布 |
+| 整版审阅边界回归 | tests/regressions.test.mjs | 旧锁交错、跨后台遗留保护、日志重连/订阅/容量、健康 URL、Profile、多模块顺序 |
 
 Windows 工作流已配置，但云端尚未执行，也未设置分支强制检查。真实 Maven 项目布局、Java 启停、目标机 ACL、实际 Codex／CC 交叉使用，按验收步骤由使用者验证。

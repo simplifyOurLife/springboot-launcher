@@ -15,5 +15,6 @@ test('发行包明确列出产品文件，排除测试、状态和秘密材料',
   const {stdout}=await promisify(execFile)(process.execPath,[npmCli,'pack','--dry-run','--json','--ignore-scripts'],{cwd:root,windowsHide:true,timeout:60000,maxBuffer:2*1024*1024});
   const files=JSON.parse(stdout)[0].files.map(file=>file.path);
   for(const expected of ['bin/springboot-launcher.mjs','src/logs/log-store.mjs','src/runtime/daemon.mjs','web/index.html','web/app.mjs','scripts/private-dir.ps1','scripts/open-browser.ps1','LICENSE','THIRD_PARTY_NOTICES.md','README.md','docs/usage/codex.md','docs/usage/claude-code.md'])assert.ok(files.includes(expected),`发行包缺少 ${expected}`);
-  assert.equal(files.some(file=>/(?:^|\/)(?:node_modules|tests|\.superpowers|\.git|\.env)(?:\/|$)|instance\.json|services\.json|backend\.lock|\.log$/.test(file)),false);
+  assert.ok(files.includes('examples/demo-service/pom.xml'));
+  assert.equal(files.some(file=>/(?:^|\/)(?:node_modules|tests|target|\.superpowers|\.git|\.env)(?:\/|$)|instance\.json|services\.json|backend\.(?:lock|guard)|\.(?:log|jar|class)$/.test(file)),false);
 });

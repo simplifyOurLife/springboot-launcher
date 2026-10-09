@@ -7,6 +7,8 @@ import {startBackend} from '../src/backend/server.mjs';
 import {fixture} from './helpers/project-fixtures.mjs';
 import {createLogStore} from '../src/logs/log-store.mjs';
 import {createServiceManager} from '../src/services/manager.mjs';
+import {createEventStream} from '../src/backend/events.mjs';
+import {EventEmitter} from 'node:events';
 async function setup(t){const f=await fixture();t.after(f.cleanup);let now=1000;const token=randomBytes(32).toString('hex'),auth=createAuth({token,clock:()=>now}),manager=createServiceManager({logs:createLogStore()});const backend=await startBackend({manager,auth,instanceId:'test-instance'});t.after(backend.close);return {...backend,token,auth,advance:n=>{now+=n;}};}
 test('数据接口拒绝未认证、错误 Host 与跨站访问',async t=>{
   const s=await setup(t);
@@ -34,4 +36,9 @@ test('SSE 返回状态及缺口，连接关闭释放订阅',async t=>{
   const s=await setup(t);const controller=new AbortController();
   const response=await fetch(s.origin+'/api/events',{headers:{Authorization:`Bearer ${s.token}`},signal:controller.signal});assert.equal(response.status,200);
   const reader=response.body.getReader(),chunk=await reader.read();assert.ok(Buffer.from(chunk.value).toString().includes('event: services'));controller.abort();
+});
+
+test('SSE 慢消费者超过队列上限即断开且只释放一次',()=>{
+  const response=new EventEmitter();response.writableLength=0;response.writeHead=()=>{};response.write=frame=>{response.writableLength+=Buffer.byteLength(frame);return false;};let released=0;response.end=()=>response.emit('close');
+  const stream=createEventStream(response,{maxBytes:1024,onClose:()=>released++});assert.equal(stream.send('log',{text:'x'.repeat(700)},1),true);assert.equal(stream.send('log',{text:'x'.repeat(700)},2),false);assert.equal(released,1);assert.equal(stream.send('log',{},3),false);stream.close();assert.equal(released,1);
 });

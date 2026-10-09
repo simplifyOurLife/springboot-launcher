@@ -46,14 +46,16 @@ export async function startBackend({manager,auth,instanceId,webDir=fileURLToPath
         }json(res,200,ok(data));return;
       }
       if(route==='/api/events'&&req.method==='GET'){
-        const dir=url.searchParams.get('dir');const after=Number(url.searchParams.get('after')||req.headers['last-event-id']||0);if(!Number.isSafeInteger(after)||after<0)fail('INVALID_ARGUMENT','日志序号无效');
+        const dir=url.searchParams.get('dir'),queryAfter=Number(url.searchParams.get('after')||0),lastId=req.headers['last-event-id'];const after=lastId===undefined?queryAfter:Number(lastId);if(!Number.isSafeInteger(queryAfter)||queryAfter<0||!Number.isSafeInteger(after)||after<0)fail('INVALID_ARGUMENT','日志序号无效');
+        const projectKey=dir?(await manager.status(dir)).projectKey:null;
+        if(res.destroyed||res.writableEnded)return;
         // 先建立订阅，再同步加载快照；客户端用序号去重，避免快照期间丢事件。
-        const pending=[];let priming=true,off;
+        const pending=[];let priming=true,off,pendingBytes=0;
         const stream=createEventStream(res,{onClose:()=>{off?.();streams.delete(stream);}});streams.add(stream);
-        let projectKey=dir?(await manager.status(dir)).projectKey:null;
-        off=manager.subscribe(event=>{if(event.type==='log'&&event.data.projectKey!==projectKey)return;if(priming){if(pending.length<2000)pending.push(event);else stream.close();}else stream.send(event.type,event.data,event.type==='log'?event.data.seq:undefined);});
+        off=manager.subscribe(event=>{if(event.type==='log'&&event.data.projectKey!==projectKey)return;if(priming){pendingBytes+=Buffer.byteLength(JSON.stringify(event));if(pending.length<2000&&pendingBytes<=524288)pending.push(event);else stream.close();}else stream.send(event.type,event.data,event.type==='log'?event.data.seq:undefined);});
+        if(stream.closed){off();return;}
         stream.send('services',await manager.list());
-        if(dir){const snapshot=await manager.logs(dir,{after,lines:1000,maxBytes:524288});stream.send('snapshot',snapshot);}
+        if(dir&&!stream.closed){const snapshot=await manager.logs(dir,{after,lines:1000,maxBytes:65536});stream.send('snapshot',snapshot,snapshot.lastSeq);}
         priming=false;for(const event of pending)stream.send(event.type,event.data,event.type==='log'?event.data.seq:undefined);return;
       }
       if(route==='/api/orphan/forget'&&req.method==='POST'){

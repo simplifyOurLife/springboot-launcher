@@ -19,7 +19,7 @@ test('两个真实 MCP 代理共用服务并在一个代理退出后继续工作
     const client=new Client({name:'mvp-test',version:'1.0.0'},{mode}),transport=new StdioClientTransport({command:process.execPath,args:[fileURLToPath(new URL('../bin/springboot-launcher.mjs',import.meta.url)),'mcp'],env:{...process.env,SPRINGBOOT_LAUNCHER_HOME:home},stderr:'pipe'});
     await client.connect(transport);clients.push(client);
   }
-  assert.deepEqual((await clients[0].listTools()).tools.map(x=>x.name).sort(),[...TOOL_NAMES].sort());
+  const available=(await clients[0].listTools()).tools;assert.deepEqual(available.map(x=>x.name).sort(),[...TOOL_NAMES].sort());assert.ok(available.find(x=>x.name==='spring_boot_start').inputSchema.properties.healthUrl);
   const started=await clients[0].callTool({name:'spring_boot_start',arguments:{dir:f.dir}});assert.equal(started.structuredContent.ok,true);
   const current=await clients[1].callTool({name:'spring_boot_status',arguments:{dir:f.dir}});assert.equal(current.structuredContent.data.pid,started.structuredContent.data.pid);
   const invalid=await clients[0].callTool({name:'spring_boot_start',arguments:{dir:f.dir,build:true}});assert.equal(invalid.isError,true);

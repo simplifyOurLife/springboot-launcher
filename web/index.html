@@ -17,14 +17,15 @@
         <div class="service-header"><div><p class="eyebrow">SPRING BOOT SERVICE</p><h1 id="service-name">项目</h1><div class="service-meta"><span id="service-status" class="status-label">待启动</span><span id="service-port">—</span><span id="service-mode">—</span></div></div><div class="service-actions"><button id="start" class="button">▶ 启动</button><button id="restart" class="button secondary">↻ 重启</button><button id="stop" class="button danger">■ 停止</button></div></div>
         <div id="readiness" class="readiness">服务尚未启动</div>
         <details id="config" class="config"><summary>运行设置 <span id="config-summary">自动选择产物</span></summary><div class="config-grid">
-          <label>Spring Profile<input id="profile" placeholder="例如 dev（可选）"></label><label>端口<input id="port" type="number" min="1" max="65535" value="8080"></label>
+          <label>Spring Profile<input id="profile" placeholder="例如 dev（可选）"></label><label>端口覆盖<input id="port" type="number" min="1" max="65535" placeholder="留空使用应用配置"></label>
           <label>运行模式<select id="mode"><option value="auto">自动选择</option><option value="jar">可执行 jar</option><option value="classpath">classes / classpath</option></select></label><label>JDK 目录<input id="jdk" placeholder="使用本机 JDK（可选）"></label>
           <label class="wide">jar 文件<input id="jar" placeholder="多个 jar 时明确指定（可选）"></label><label class="wide">入口类<input id="main-class" placeholder="例如 com.example.DemoApplication（可选）"></label>
           <label class="wide">完整 classpath<textarea id="classpath" rows="2" placeholder="每行一个目录或 jar（可选）"></textarea></label><label class="wide">JVM 选项<textarea id="jvm" rows="2" placeholder="每行一个选项，例如 -Xmx512m（可选）"></textarea></label>
+          <label class="wide">健康检查地址<input id="health-url" placeholder="例如 http://127.0.0.1:8087/actuator/health（可选）"></label>
         </div><p class="config-note">修改配置后停止再启动。缺少或过期产物会提示构建；Windows 停止不承诺执行优雅关闭钩子。</p></details>
         <section class="log-panel" aria-label="实时日志"><div class="log-toolbar"><div class="log-title"><i></i>实时日志<span id="log-meta">等待输出</span></div><div class="log-controls"><label class="follow-label"><input id="follow" type="checkbox" checked>跟随</label><button id="pause" class="log-button">暂停</button><button id="copy" class="log-button">复制</button></div></div>
           <div class="log-search"><span>⌕</span><input id="search" type="search" placeholder="搜索当前日志缓冲…" aria-label="搜索当前日志缓冲"><span id="search-count"></span></div>
-          <div id="log-gap" class="log-gap" hidden>仅显示最近日志，部分较早片段已省略。</div><pre id="logs" class="log-output" tabindex="0" aria-label="服务日志文本">等待服务输出…</pre>
+          <div id="log-gap" class="log-gap" hidden>仅显示最近日志，部分较早片段已省略。</div><div id="log-warning" class="log-gap" role="status" hidden></div><pre id="logs" class="log-output" tabindex="0" aria-label="服务日志文本">等待服务输出…</pre>
           <div class="log-footer"><span><span id="stream-status">实时连接</span> · stdout + stderr</span><span id="log-size">0 KB / 512 KB</span></div>
         </section>
       </section>

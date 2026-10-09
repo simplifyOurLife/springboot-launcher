@@ -17,3 +17,10 @@ test('快照只追加未见事件，切换项目重置序号',()=>{
   let s=reduceEvent(createViewState(),event(1,'a'));s=reduceEvent(s,{type:'snapshot',data:{events:[event(1,'a').data,event(2,'b').data],lastSeq:2,gap:false}});assert.equal(s.text,'ab');
   s=reduceEvent(s,{type:'project',projectKey:'other'});assert.equal(s.receivedSeq,0);assert.equal(s.text,'');
 });
+
+test('写盘恢复后实时事件和重连快照清除旧警告',()=>{
+  const old={projectKey:'demo',seq:1,text:'old',persistenceError:'写盘失败'};
+  const warned=reduceEvent(createViewState(),{type:'log',data:old});
+  const recovered=reduceEvent(warned,{type:'log',data:{projectKey:'demo',seq:2,text:'new',persistenceError:null}});assert.equal(recovered.persistenceError,null);
+  const replay=reduceEvent(createViewState(),{type:'snapshot',data:{events:[old],lastSeq:1,persistenceError:null}});assert.equal(replay.persistenceError,null);
+});

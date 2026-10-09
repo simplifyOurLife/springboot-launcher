@@ -1,9 +1,9 @@
 import {normalizeProjectDir} from '../project/paths.mjs';
 import {prepareLaunch as defaultPrepare} from '../project/launch-plan.mjs';
 import {createJavaExecutor} from './executor.mjs';
-import {probePort as defaultProbe} from './health.mjs';
+import {probePort as defaultProbe,checkHealth as defaultHealthCheck} from './health.mjs';
 import {fail,failure} from '../core/errors.mjs';
-export function createServiceManager({prepareLaunch=defaultPrepare,executor=createJavaExecutor(),logs,probePort=defaultProbe,persistServices=async()=>{},initialRecords=[],clock=()=>new Date().toISOString(),stopTimeoutMs=10000}={}){
+export function createServiceManager({prepareLaunch=defaultPrepare,executor=createJavaExecutor(),logs,probePort=defaultProbe,healthCheck=defaultHealthCheck,healthIntervalMs=1500,persistServices=async()=>{},initialRecords=[],clock=()=>new Date().toISOString(),stopTimeoutMs=10000}={}){
   const records=new Map(),locks=new Map(),listeners=new Set();let shutdown=false,persistence=Promise.resolve();
   const blank=id=>({...id,status:'stopped',pid:null,startedAt:null,mode:null,port:null,readiness:{ready:false,evidence:[],reason:'服务尚未启动'},exitCode:null,logPath:null,error:null});
   const view=r=>structuredClone(r.view);
@@ -24,7 +24,7 @@ export function createServiceManager({prepareLaunch=defaultPrepare,executor=crea
     r.view.logPath=await logs.open(id.projectKey,id.dir);await emit(r);
     // 在任何启动日志之前订阅，确保所有入口看到连续序号。
     r.offLogs=logs.subscribe(id.projectKey,event=>{
-      if(/Started\s+\S+.*\s(?:in|after)\s+[\d.]+\s+seconds/.test(event.text)&&!r.closed&&!r.view.readiness.ready){r.view.readiness={ready:true,evidence:['spring-started-log'],reason:'Spring Boot 已输出启动完成标志'};emit(r);}
+      if(!plan.healthUrl&&/Started\s+\S+.*\s(?:in|after)\s+[\d.]+\s+seconds/.test(event.text)&&!r.closed&&!r.view.readiness.ready){r.view.readiness={ready:true,evidence:['spring-started-log'],reason:'Spring Boot 已输出启动完成标志'};emit(r);}
       for(const listener of listeners)try{listener({type:'log',data:event});}catch{/* 单个日志查看者独立。 */}
     });
     logs.appendChunk(id.projectKey,'system',Buffer.from(`\n[启动器] 正在启动服务，模式 ${plan.mode}${plan.port?`，端口 ${plan.port}`:''}\n`));
@@ -39,7 +39,12 @@ export function createServiceManager({prepareLaunch=defaultPrepare,executor=crea
       });
       for(const source of ['stdout','stderr']){r.child[source]?.on('data',bytes=>logs.appendChunk(id.projectKey,source,bytes));r.child[source]?.once('end',()=>logs.finishStream(id.projectKey,source));}
       r.child.once('spawn',()=>{if(!r.closed){r.view.status='running';if(!r.view.readiness.ready)r.view.readiness.reason='进程运行中，就绪未确认';emit(r);}});
-      let checking=false;r.healthTimer=setInterval(async()=>{if(checking||r.closed||r.view.readiness.ready)return;checking=true;try{if(await probePort(plan.port)&&!r.closed){r.view.readiness={ready:false,evidence:['tcp'],reason:'端口可连接，应用就绪仍未确认'};emit(r);}}finally{checking=false;}},1500);r.healthTimer.unref();
+      let checking=false;r.healthTimer=setInterval(async()=>{
+        if(checking||r.closed||r.stopping||!plan.healthUrl&&r.view.readiness.ready)return;checking=true;
+        try{const readiness=plan.healthUrl?await healthCheck(plan.healthUrl):await probePort(plan.port)?{ready:false,evidence:['tcp'],reason:'端口可连接，应用就绪仍未确认'}:null;
+          if(readiness&&!r.closed&&!r.stopping&&JSON.stringify(readiness)!==JSON.stringify(r.view.readiness)){r.view.readiness=readiness;emit(r);}
+        }catch{if(!r.closed&&!r.stopping){r.view.readiness={ready:false,evidence:[],reason:'健康检查未确认'};emit(r);}}finally{checking=false;}
+      },healthIntervalMs);r.healthTimer.unref();
       await emit(r);return view(r);
     }catch(error){r.closed=true;r.view.status='failed';r.view.error=failure(error).error;await logs.close(id.projectKey);r.offLogs?.();await emit(r);fail('START_FAILED','无法启动 Java 子进程，请检查 JDK 与配置');}
   }
@@ -60,6 +65,6 @@ export function createServiceManager({prepareLaunch=defaultPrepare,executor=crea
     async restart(dir){const id=await normalizeProjectDir(dir);return locked(id.projectKey,async()=>{const r=records.get(id.projectKey);if(!r?.request)fail('INVALID_ARGUMENT','没有可重启的运行配置');const request=r.request;await stopRecord(r);return launch(request,id);});},
     subscribe(listener){listeners.add(listener);return ()=>listeners.delete(listener);},
     async confirmOrphan(dir,{acknowledge}={}){if(acknowledge!==true)fail('INVALID_ARGUMENT','遗忘记录前必须确认已人工处理遗留服务');const id=await normalizeProjectDir(dir);return locked(id.projectKey,async()=>{const r=records.get(id.projectKey);if(r?.view.status!=='orphaned')fail('INVALID_ARGUMENT','该项目没有遗留记录');records.delete(id.projectKey);await emit(r);return blank(id);});},
-    async shutdown({stopServices=false}={}){shutdown=true;await Promise.allSettled([...locks.values()]);if([...records.values()].some(active)&&!stopServices){shutdown=false;fail('SERVICE_RUNNING','仍有托管服务，请先停止服务或明确选择停止全部');}try{if(stopServices)for(const r of records.values())await stopRecord(r);await persistence;}catch(error){shutdown=false;throw error;}}
+    async shutdown({stopServices=false}={}){shutdown=true;await Promise.allSettled([...locks.values()]);if([...records.values()].some(active)&&!stopServices){shutdown=false;fail('SERVICE_RUNNING','仍有托管服务，请先停止服务或明确选择停止全部');}try{if(stopServices)for(const r of records.values())if(active(r))await stopRecord(r);await persistence;}catch(error){shutdown=false;throw error;}}
   };
 }

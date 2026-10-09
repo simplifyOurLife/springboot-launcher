@@ -26,7 +26,7 @@ function renderLogs(){
   renderTimer=null;const query=$('search').value.toLocaleLowerCase(),text=state.displayText;let output=text;
   if(query){const matches=text.split('\n').filter(line=>line.toLocaleLowerCase().includes(query));output=matches.join('\n');$('search-count').textContent=`${matches.length} 行匹配`;}else $('search-count').textContent='';
   // 应用输出始终作为文本处理，禁止通过 HTML 插值渲染。
-  $('logs').textContent=output||(query?'当前缓冲没有匹配日志。':'等待服务输出…');$('log-gap').hidden=!state.gap;
+  $('logs').textContent=output||(query?'当前缓冲没有匹配日志。':'等待服务输出…');$('log-gap').hidden=!state.gap;$('log-warning').hidden=!state.persistenceError;$('log-warning').textContent=state.persistenceError||'';
   $('log-meta').textContent=state.paused?'显示已暂停':state.receivedSeq?`序号 ${state.receivedSeq}`:'等待输出';$('log-size').textContent=`${(new TextEncoder().encode(state.text).length/1024).toFixed(1)} KB / 512 KB`;
   $('pause').textContent=state.paused?'继续':'暂停';if($('follow').checked&&!state.paused)$('logs').scrollTop=$('logs').scrollHeight;
 }
@@ -39,7 +39,7 @@ function connectEvents(dir){
 }
 async function selectProject(key){
   selected=key;const p=projects.get(key);state=reduceEvent(state,{type:'project',projectKey:key});$('empty-state').hidden=true;$('service-panel').hidden=false;renderProjects();renderService();renderLogs();connectEvents(p.dir);
-  for(const id of ['profile','jdk','jar','main-class','classpath','jvm'])$(id).value='';$('mode').value='auto';$('port').value=String(p.info?.port||p.service?.port||8080);
+  for(const id of ['profile','jdk','jar','main-class','classpath','jvm','health-url'])$(id).value='';$('mode').value='auto';$('port').value='';
   try{if(!p.info)p.info=await call('spring_boot_inspect',{dir:p.dir});if(selected===key)mergeService(await call('spring_boot_status',{dir:p.dir}));}catch(e){notice(e.message);}
 }
 async function addProject(event){event?.preventDefault();if(busy)return;const dir=$('project-dir').value.trim();if(!dir){$('project-dir').focus();return;}
@@ -50,7 +50,7 @@ async function operate(action){
   try{
     const args={dir:p.dir};if(action==='start'){
       args.mode=$('mode').value;const port=Number($('port').value);if(port)args.port=port;
-      for(const [id,field]of [['profile','profile'],['jdk','jdkHome'],['jar','jarPath'],['main-class','mainClass']])if($(id).value.trim())args[field]=$(id).value.trim();
+      for(const [id,field]of [['profile','profile'],['jdk','jdkHome'],['jar','jarPath'],['main-class','mainClass'],['health-url','healthUrl']])if($(id).value.trim())args[field]=$(id).value.trim();
       for(const [id,field]of [['classpath','classpath'],['jvm','jvmArgs']])if($(id).value.trim())args[field]=$(id).value.split('\n').map(s=>s.trim()).filter(Boolean);
     }
     const service=await call(`spring_boot_${action}`,args);mergeService(service);if(action==='start')connectEvents(p.dir);notice({start:'启动请求已提交。',stop:'服务已停止。',restart:'重启请求已提交。'}[action],true);

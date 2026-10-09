@@ -34,13 +34,14 @@ export async function prepareLaunch(request,{inspect=inspectProject,resolveJdk=d
     if(!cp){const saved=(await readSmall(path.join(dir,'target/runtime-classpath.txt'))).trim();cp=[...artifacts.classDirs,...(saved?saved.split(path.delimiter).map(item=>path.resolve(dir,item)):artifacts.dependencyJars)];if(cp.length===artifacts.classDirs.length)fail('BUILD_REQUIRED','缺少运行依赖，请准备 target/lib、target/dependency 或指定完整 classpath');}
     for(const item of cp)await checkFresh(item,item.endsWith('.jar')?0:artifacts.srcNewestMtime);
     const pom=await readPom(dir);
-    if(info.reactorRoot!==dir){const root=await readPom(info.reactorRoot);for(const sibling of root.modules){if(sibling===dir)continue;const module=await readPom(sibling);if(pom.dependencies.some(dep=>dep.groupId===module.groupId&&dep.artifactId===module.artifactId)){const siblingInfo=await inspect(sibling);const classes=path.join(sibling,'target/classes');await checkFresh(classes,siblingInfo.artifacts.srcNewestMtime);if(!cp.includes(classes))cp.push(classes);}}}
+    if(info.reactorRoot!==dir){const root=await readPom(info.reactorRoot);for(const sibling of root.modules){if(sibling===dir)continue;const module=await readPom(sibling);if(pom.dependencies.some(dep=>dep.groupId===module.groupId&&dep.artifactId===module.artifactId)){const siblingInfo=await inspect(sibling);const classes=path.join(sibling,'target/classes');await checkFresh(classes,siblingInfo.artifacts.srcNewestMtime);cp=[classes,...cp.filter(item=>item!==classes)];}}}
     if(!(await Promise.all(cp.map(item=>exists(path.join(item,...mainClass.split('.'))+'.class')))).some(Boolean))fail('BUILD_REQUIRED','classpath 中缺少入口类');
     args.push('-cp',cp.join(path.delimiter),mainClass);
   }
   if(request.profile)args.push(`--spring.profiles.active=${request.profile}`);
-  const port=request.port??info.port;if(port)args.push(`--server.port=${port}`);
+  // 未指定端口时交给 Spring 配置优先级处理，不能覆盖 Profile 或环境变量。
+  const port=request.port??null;if(port)args.push(`--server.port=${port}`);
   const jdk=await resolveJdk({jdkHome:request.jdkHome,requiredJavaMajor:info.requiredJavaMajor});
   if(args.join(' ').length>30000)fail('INVALID_ARGUMENT','Windows 启动参数过长，请使用可执行 jar');
-  return {projectKey,dir,executable:jdk.executable,args,mode,port,profile:request.profile||null,mainClass,reasons:['仅运行已有产物；没有执行构建']};
+  return {projectKey,dir,executable:jdk.executable,args,mode,port,profile:request.profile||null,mainClass,healthUrl:request.healthUrl||null,reasons:['仅运行已有产物；没有执行构建']};
 }
