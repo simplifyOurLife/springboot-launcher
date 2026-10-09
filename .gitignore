@@ -40,3 +40,4 @@ instance.json
 Thumbs.db
 desktop.ini
 .DS_Store
+.superpowers/

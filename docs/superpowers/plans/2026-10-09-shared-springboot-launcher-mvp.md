@@ -8,7 +8,7 @@
 
 **技术栈：** Node.js ESM 22.22.2、Node.js 内置 HTTP／SSE／文件／子进程／测试能力、官方 MCP SDK v2、Zod v4、无构建步骤的 HTML／CSS／JavaScript。
 
-**设计依据：** [已获用户确认的 MVP 设计](../specs/2026-10-09-shared-springboot-launcher-design.md)。本计划等待用户审阅及选择执行方式，尚未生成产品代码。
+**设计依据：** [已获用户确认的 MVP 设计](../specs/2026-10-09-shared-springboot-launcher-design.md)。用户已确认计划并要求继续，采用当前会话逐项实现、整版一次独立审阅的方式。
 
 ## 全局约束
 

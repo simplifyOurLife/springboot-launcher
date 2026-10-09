@@ -2,13 +2,15 @@
 
 ## 当前材料
 
-目前仓库只有设计和开源准备文档，没有安装运行依赖，也没有复制第三方产品实现。LICENSE 沿用下述参考工程的 Apache License 2.0 文本，并保留其中原有的 `Copyright [qiyifeng]` 标记；不得删除或替换该来源版权。
+LICENSE 沿用下述参考工程的 Apache License 2.0 文本，并保留其中原有的 `Copyright [qiyifeng]` 标记；不得删除或替换该来源版权。
 
 ## 计划迁移的参考工程
 
 | 来源 | 许可证 | 计划参考范围 | 当前状态 |
 | --- | --- | --- | --- |
-| [DSH Spring Boot Launcher](https://github.com/simplifyOurLife/dsh-spring-boot-launcher) | Apache-2.0 | Maven 检查、JDK 发现、产物决策、日志处理 | 尚未迁移实现；检查时 main 为 ff5862a38086a726c637e967ef0adf8ec8cd37a1 |
+| [DSH Spring Boot Launcher](https://github.com/simplifyOurLife/dsh-spring-boot-launcher) | Apache-2.0 | JDK 候选发现 | src/jdk-discovery.js 改编为本项目 src/project/jdk.mjs；来源 main 为 ff5862a38086a726c637e967ef0adf8ec8cd37a1 |
+
+源 jdk-discovery.js 的 SHA-256：46057B0EF4A98973DA3CB0CA8D568580D925A5EDCF8EF9A08A2C6EEFDED743FA。适配改为异步 Java 版本探测、原生参数数组，删除宿主依赖；文件头保留来源及修改声明。其余新模块按本项目设计独立实现，未复制旧宿主入口。
 
 移植时记录来源修订、实际复制文件、对应的新文件和修改说明；保留适用的版权、归属及 NOTICE，不将宿主专属实现或未经审查的材料整体带入新仓库。
 
