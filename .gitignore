@@ -11,7 +11,7 @@ target/
 .runtime/
 .local/
 .cache/
-logs/
+/logs/
 *.log
 *.log.*
 *.pid
