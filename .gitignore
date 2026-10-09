@@ -1,0 +1,42 @@
+# 依赖与生成产物
+node_modules/
+dist/
+coverage/
+target/
+*.class
+*.jar
+*.tgz
+
+# 本地运行状态与日志
+.runtime/
+.local/
+.cache/
+logs/
+*.log
+*.log.*
+*.pid
+*.lock.tmp
+backend-state.json
+instance.json
+
+# 凭据与个人配置
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+.m2/
+.claude/
+.codex/
+.mcp.json
+
+# 编辑器与系统文件
+.idea/
+.vscode/
+Thumbs.db
+desktop.ini
+.DS_Store
