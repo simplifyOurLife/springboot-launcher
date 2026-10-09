@@ -1,0 +1,21 @@
+# Codex 接入
+
+先按 [README](../../README.md) 在启动器目录安装依赖。下例中的 `D:\tools\springboot-launcher` 请替换为源码实际绝对路径，`node` 需要在 Codex 启动环境的 PATH 中。
+
+```powershell
+codex mcp add springboot-launcher -- node "D:\tools\springboot-launcher\bin\springboot-launcher.mjs" mcp
+```
+
+这是供使用者自行执行的配置命令，本项目的安装和测试不会修改现有 Codex 配置。命令结构已用本机 Codex CLI 帮助核对；尚未在真实 Codex 会话完成业务工程验收。官方语法见 [Codex MCP 文档](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)。
+
+重新打开客户端或会话，在 MCP 列表确认连接及以下八个工具：`spring_boot_discover`、`spring_boot_inspect`、`spring_boot_start`、`spring_boot_status`、`spring_boot_logs`、`spring_boot_stop`、`spring_boot_restart`、`spring_boot_dashboard`。CLI 会话可以使用 `/mcp` 查看连接。
+
+可以告诉 Codex：
+
+> 请检查 D:\demo\orders-service 的 Spring Boot 运行条件。使用已有产物，以 local Profile 和 8087 端口启动，不执行构建。打开实时日志面板。
+
+如返回 `BUILD_REQUIRED`，请自行准备产物后再启动。JDK 选择不正确时明确指定 `jdkHome`。MCP 的启动参数包括 `dir`、`profile`、`port`、`jdkHome`、`mode`、`jarPath`、`mainClass`、`classpath`（字符串数组）、`jvmArgs`（字符串数组）；未知字段会被拒绝。
+
+面板工具返回短期本机链接。Codex 桌面版可在浏览器面板打开，CLI 用户可用系统浏览器打开。固定专用侧栏插件不属于首版。链接过期请重新调用工具，不要复制后台控制凭据。
+
+如果为两个客户端自定义 `SPRINGBOOT_LAUNCHER_HOME`，必须设置为同一个绝对空目录；默认都使用当前用户 LOCALAPPDATA，无需额外设置。客户端环境可能不同，排查时比较 Node、JDK 和后台目录。移除 MCP 配置只移除代理，不会停止 JVM；先通过工具或面板停止不再需要的服务。

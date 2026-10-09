@@ -1,6 +1,6 @@
 # 参与贡献
 
-本项目当前处于 MVP 设计阶段。欢迎指出设计缺口、提供可公开的最小 Maven Spring Boot 示例或改进文档；产品代码和测试入口会在设计审阅后补齐。
+本项目当前为本地 alpha MVP，欢迎提供可公开的最小 Maven Spring Boot 示例、问题复现或文档改进。真实业务工程与双客户端验收仍待执行。
 
 ## 项目范围
 
@@ -24,7 +24,7 @@
 - 真实工程需要构建时，由使用者执行；没有完成真实验证就如实标注。
 - 行为修改应增加能够捕获实际问题的测试，纯文档或低影响样式修改无需增加镜像测试。
 
-当前还没有测试脚本，不能声称测试通过。实现后会在 README 给出可复现的安装和测试命令，并把现有覆盖记录到 [验证映射](documentation/tests.md)。
+安装使用 `npm ci --ignore-scripts --no-audit --no-fund`，测试使用 `npm test`，发行内容检查使用 `npm pack --dry-run --json --ignore-scripts`。测试在仓库忽略目录 `.superpowers/tmp` 中创建夹具，包括目录联接、私有 ACL、回环接口和模拟子进程，需要相应本地权限。不会启动真实 Java 或执行业务 build。结果见[验证映射](documentation/tests.md)。
 
 ## 提交与 PR
 

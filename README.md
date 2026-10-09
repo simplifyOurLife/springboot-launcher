@@ -1,42 +1,59 @@
 # Spring Boot 启动器
 
-让 Codex、Claude Code 和网页面板共用一套本地 Spring Boot 服务管理能力。
+在 Codex 或 Claude Code 中操作本地 Spring Boot 服务，在同一网页面板实时查看日志，无需为启停服务打开 IDEA。
 
-## 当前状态
+当前版本为 **0.1.0-alpha.1，本地 MVP，待真实工程验收**。共享后台、八个 MCP 工具和中文面板已经实现，自动测试及模拟浏览器验证见[验证记录](docs/verification/mvp.md)。尚未公开发布 GitHub 仓库或 npm 包。
 
-MVP 书面设计已确认，目前等待[实施计划](docs/superpowers/plans/2026-10-09-shared-springboot-launcher-mvp.md) 审阅与执行方式确认。仓库已有设计和开源准备文档，产品代码、可执行入口、客户端安装步骤和自动测试尚未生成；没有发布 npm 包，也没有完成真实 Spring Boot 启停验收。
+![中文服务管理与实时日志面板](docs/assets/mvp-panel-demo.jpg)
 
-请先阅读 [MVP 设计](docs/superpowers/specs/2026-10-09-shared-springboot-launcher-design.md)。下面描述的是确定的产品方向，不能作为已经实现的功能清单。
+截图使用隔离模拟项目，日志不是实际业务数据，不能代表真实 Spring Boot 验收。
 
-## MVP 目标
+## 使用
 
-- 本地唯一后台管理 Maven Spring Boot 项目、JDK、运行配置及 JVM。
-- Codex 和 Claude Code 通过各自的 MCP 代理连接同一个后台。
-- 网页面板操作项目并实时查看 stdout、stderr、运行状态和退出信息。
-- 聊天结束不停止服务；重复启动、端口冲突和缺少产物有明确提示。
-- 优先运行已准备的 jar 或 classes；需要构建时交给用户处理。
+首版环境：Windows 11、PowerShell 7、Node.js 22.22.2 或更新的兼容版本，以及目标工程要求的可信 JDK。只支持 Maven Spring Boot 的已有可执行 jar 或 classes。Gradle、其他操作系统、远程访问和固定客户端侧栏尚未验收。
 
-首版验收目标为 Windows 11、PowerShell 7 和 Maven Spring Boot。Gradle、Linux、macOS、公网访问、客户端固定侧栏及系统服务安装暂未进入支持范围。
+取得本仓库源码，放在任意本地目录，例如 `D:\tools\springboot-launcher`。在该目录执行：
 
-## 使用方式
+```powershell
+npm ci --ignore-scripts --no-audit --no-fund
+node .\bin\springboot-launcher.mjs --help
+node .\bin\springboot-launcher.mjs dashboard
+```
 
-MVP 完成后会提供可验证的源码安装步骤，以及 Codex 和 Claude Code 的接入配置。当前不提供尚不存在的安装命令。
+最后一条命令打开本机面板。添加**可信工程的应用模块目录**，点击检查，填写 Profile、JDK、端口等配置，再启动。缺少或过期产物时提示 `BUILD_REQUIRED`，请自行构建后重试；启动器不会执行 Maven 或前端 build。
 
-面板计划在 Codex 桌面版的浏览器面板或系统浏览器打开。CC 终端版使用同一个系统浏览器页面；后台和面板均运行在本机，无需部署到云端。
+接入说明：[Codex](docs/usage/codex.md) · [Claude Code](docs/usage/claude-code.md) · [故障排查](docs/usage/troubleshooting.md)。两个客户端使用同一 Windows 用户和同一后台目录即可共享服务，无需分别部署后台。
 
-## 开源准备
+## 服务与日志
 
-- [架构、权限与验证文档](documentation/architecture.md)
-- [参与贡献](CONTRIBUTING.md)
-- [安全策略](SECURITY.md)
-- [行为准则](CODE_OF_CONDUCT.md)
-- [第三方来源说明](THIRD_PARTY_NOTICES.md)
-- [MVP 发布检查清单](docs/release-readiness.md)
+- 支持检查、发现、启动、查询状态、读取日志、停止、重启、打开面板。
+- 聊天结束不会停止服务。停止只作用于当前后台拥有的子进程，不按端口终止其他程序。
+- 面板可暂停显示、搜索当前缓冲、复制和跟随滚动；断线后补取有限日志，缺口明确提示。
+- “进程运行中”与“应用就绪”分别显示。仅端口可连接时不宣布就绪。
+- 每个项目内存日志最多 512 KiB；项目 `logs` 目录保留最多四份、每份 10 MiB 的轮转日志。主动通过 MCP 查询的片段会进入当前 AI 会话。
 
-仅在真实验收和发布检查通过后标记为可用 MVP。自动测试结果与真实客户端验证将分别记录，未验证的平台不会被宣传为已支持。
+后台仅监听 `127.0.0.1`，端口自动分配，默认状态目录为 `%LOCALAPPDATA%\springboot-launcher`。面板链接含 60 秒单次票据，过期时重新打开；不要分享链接或本机状态文件。
 
-## 许可证与归属
+```powershell
+# 查看状态；无后台时会按需创建后台
+node .\bin\springboot-launcher.mjs status
+# 没有运行服务时退出后台
+node .\bin\springboot-launcher.mjs daemon stop
+# 明确停止全部托管服务并退出后台
+node .\bin\springboot-launcher.mjs daemon stop --stop-services
+```
 
-本项目采用 [Apache License 2.0](LICENSE)。实现计划参考 DSH Spring Boot Launcher；复制来源及修改记录将保存在第三方来源说明中。
+Windows 停止操作不保证执行 JVM 优雅关闭钩子。后台异常后的遗留进程需要人工处理，不会自动接管。启动器以当前用户权限运行可信应用，不提供应用沙箱。
 
-Codex、Claude Code、Spring Boot 和其他产品名称仅说明集成对象，本项目不是这些产品的官方项目，也不表示官方背书。
+## 开发与开源
+
+```powershell
+npm test
+npm pack --dry-run --json --ignore-scripts
+```
+
+测试使用隔离夹具和模拟子进程，不执行 Java 或前端 build。已准备 Windows CI 配置，云端执行仍待公开仓库建立后验证。
+
+[架构与权限](documentation/architecture.md) · [贡献指南](CONTRIBUTING.md) · [安全策略](SECURITY.md) · [行为准则](CODE_OF_CONDUCT.md) · [发布清单](docs/release-readiness.md) · [变更记录](CHANGELOG.md)。
+
+采用 [Apache License 2.0](LICENSE)，外部来源和依赖见[第三方说明](THIRD_PARTY_NOTICES.md)。Codex、Claude Code、Spring Boot 等名称仅用于说明集成对象，本项目不代表这些产品的官方项目或背书。
