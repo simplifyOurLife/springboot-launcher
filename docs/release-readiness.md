@@ -9,8 +9,9 @@
 - [x] 准备 README、CONTRIBUTING、SECURITY、行为准则和 Issue／PR 模板。
 - [x] 保留 Apache-2.0 许可证及来源版权。
 - [x] 建立第三方来源、权限、配置和验证文档。
-- [ ] 用户审阅并确认书面 MVP 设计。
-- [ ] 根据已确认设计生成实施计划并确定执行方式。
+- [x] 用户审阅并确认书面 MVP 设计。
+- [x] 根据已确认设计生成[实施计划](superpowers/plans/2026-10-09-shared-springboot-launcher-mvp.md)。
+- [ ] 用户审阅实施计划并确定执行方式。
 
 ## 产品验收
 

@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-目前处于首个 MVP 的书面设计阶段。仓库已有设计与开源准备文档，产品代码、可执行入口、客户端安装步骤和自动测试尚未生成；没有发布 npm 包，也没有完成真实 Spring Boot 启停验收。
+MVP 书面设计已确认，目前等待[实施计划](docs/superpowers/plans/2026-10-09-shared-springboot-launcher-mvp.md) 审阅与执行方式确认。仓库已有设计和开源准备文档，产品代码、可执行入口、客户端安装步骤和自动测试尚未生成；没有发布 npm 包，也没有完成真实 Spring Boot 启停验收。
 
 请先阅读 [MVP 设计](docs/superpowers/specs/2026-10-09-shared-springboot-launcher-design.md)。下面描述的是确定的产品方向，不能作为已经实现的功能清单。
 

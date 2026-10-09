@@ -31,6 +31,7 @@ MCP 代理由私有实例文件取得控制凭据；网页使用短期单次票�
 ## 关联文档
 
 - [完整 MVP 设计](../docs/superpowers/specs/2026-10-09-shared-springboot-launcher-design.md)
+- [MVP 实施计划](../docs/superpowers/plans/2026-10-09-shared-springboot-launcher-mvp.md)
 - [受保护的操作流程](flows.md)
 - [权限边界](permissions.md)
 - [配置与凭据](variables.md)
