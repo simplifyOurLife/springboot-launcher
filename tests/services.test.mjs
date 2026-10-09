@@ -8,10 +8,10 @@ import {createLogStore} from '../src/logs/log-store.mjs';
 import {createJavaExecutor} from '../src/services/executor.mjs';
 import {createServiceManager} from '../src/services/manager.mjs';
 export async function waitFor(fn,timeout=3000){const end=Date.now()+timeout;while(Date.now()<end){const value=await fn();if(value)return value;await new Promise(r=>setTimeout(r,20));}throw new Error('等待状态超时');}
-async function setup(t,{fast=false,occupied=false,stopTimeoutMs=10000,initialRecords=[]}={}){
+async function setup(t,{fast=false,quiet=false,occupied=false,stopTimeoutMs=10000,initialRecords=[]}={}){
   const f=await fixture();let count=0,options,child;
   const executor=createJavaExecutor({spawn:(exe,args,opt)=>{count++;options=opt;child=spawn(exe,args,opt);return child;}});
-  const plan=async request=>({...await normalizeProjectDir(request.dir),executable:process.execPath,args:[fileURLToPath(new URL('./helpers/fake-java.mjs',import.meta.url)),...(fast?['exit']:[])],port:8080,mode:'classpath',profile:null});
+  const plan=async request=>({...await normalizeProjectDir(request.dir),executable:process.execPath,args:[fileURLToPath(new URL('./helpers/fake-java.mjs',import.meta.url)),...(fast?['exit']:[]),...(quiet?['quiet']:[])],port:8080,mode:'classpath',profile:null});
   const manager=createServiceManager({prepareLaunch:plan,executor,logs:createLogStore(),probePort:async()=>occupied,initialRecords,stopTimeoutMs});
   t.after(async()=>{await manager.shutdown({stopServices:true});await f.cleanup();});
   return {f,manager,get count(){return count;},get options(){return options;},get child(){return child;}};
@@ -40,4 +40,12 @@ test('异常旧记录必须人工确认，不能使用旧 PID',async t=>{
 test('停止失败时重启不得产生第二个进程',async t=>{
   const s=await setup(t,{stopTimeoutMs:40});await s.manager.start({dir:s.f.dir});const original=s.child.kill.bind(s.child);s.child.kill=()=>false;
   await assert.rejects(s.manager.restart(s.f.dir),{code:'STOP_FAILED'});assert.equal(s.count,1);s.child.kill=original;
+});
+test('实时查看者能收到首条系统启动日志',async t=>{
+  const s=await setup(t),events=[];s.manager.subscribe(e=>{if(e.type==='log')events.push(e.data);});await s.manager.start({dir:s.f.dir});await waitFor(()=>events.length);
+  assert.equal(events[0].seq,1);assert.equal(events[0].source,'system');
+});
+test('运行但无就绪证据时显示未确认，不显示尚未启动',async t=>{
+  const s=await setup(t,{quiet:true});await s.manager.start({dir:s.f.dir});const service=await waitFor(async()=>{const v=await s.manager.status(s.f.dir);return v.status==='running'&&v;});
+  assert.equal(service.readiness.ready,false);assert.equal(service.readiness.reason,'进程运行中，就绪未确认');
 });

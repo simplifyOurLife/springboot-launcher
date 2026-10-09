@@ -20,9 +20,14 @@ export function createServiceManager({prepareLaunch=defaultPrepare,executor=crea
     if(shutdown)fail('BACKEND_UNAVAILABLE','后台正在关闭');
     const old=records.get(id.projectKey);if(old?.view.status==='orphaned')fail('ORPHANED_SERVICE','请先人工确认遗留服务，再遗忘记录');if(active(old))return view(old);
     const plan=await prepareLaunch(request);if(plan.port&&await probePort(plan.port))fail('PORT_IN_USE',`端口 ${plan.port} 已被占用，请更换端口`);
-    const r={view:{...blank(id),status:'starting',startedAt:clock(),mode:plan.mode,port:plan.port},request:{...request,dir:id.dir},closed:false,stopping:false};records.set(id.projectKey,r);
+    const r={view:{...blank(id),status:'starting',startedAt:clock(),mode:plan.mode,port:plan.port,readiness:{ready:false,evidence:[],reason:'正在等待进程启动'}},request:{...request,dir:id.dir},closed:false,stopping:false};records.set(id.projectKey,r);
     r.view.logPath=await logs.open(id.projectKey,id.dir);await emit(r);
-    logs.appendChunk(id.projectKey,'system',Buffer.from(`\n[启动器] 正在启动服务，模式 ${plan.mode}，端口 ${plan.port}\n`));
+    // 在任何启动日志之前订阅，确保所有入口看到连续序号。
+    r.offLogs=logs.subscribe(id.projectKey,event=>{
+      if(/Started\s+\S+.*\s(?:in|after)\s+[\d.]+\s+seconds/.test(event.text)&&!r.closed&&!r.view.readiness.ready){r.view.readiness={ready:true,evidence:['spring-started-log'],reason:'Spring Boot 已输出启动完成标志'};emit(r);}
+      for(const listener of listeners)try{listener({type:'log',data:event});}catch{/* 单个日志查看者独立。 */}
+    });
+    logs.appendChunk(id.projectKey,'system',Buffer.from(`\n[启动器] 正在启动服务，模式 ${plan.mode}${plan.port?`，端口 ${plan.port}`:''}\n`));
     try{
       r.child=executor.spawn(plan);r.view.pid=r.child.pid||null;
       r.done=new Promise(resolve=>{r.resolve=resolve;});
@@ -33,14 +38,10 @@ export function createServiceManager({prepareLaunch=defaultPrepare,executor=crea
         logs.appendChunk(id.projectKey,'system',Buffer.from(`\n[启动器] 服务已退出，退出码 ${r.view.exitCode??'未知'}\n`));await logs.close(id.projectKey);r.offLogs?.();await emit(r);r.resolve();
       });
       for(const source of ['stdout','stderr']){r.child[source]?.on('data',bytes=>logs.appendChunk(id.projectKey,source,bytes));r.child[source]?.once('end',()=>logs.finishStream(id.projectKey,source));}
-      r.child.once('spawn',()=>{if(!r.closed){r.view.status='running';emit(r);}});
-      r.offLogs=logs.subscribe(id.projectKey,event=>{
-        if(/Started\s+\S+.*\s(?:in|after)\s+[\d.]+\s+seconds/.test(event.text)&&!r.closed){r.view.readiness={ready:true,evidence:['spring-started-log'],reason:'Spring Boot 已输出启动完成标志'};emit(r);}
-        for(const listener of listeners)try{listener({type:'log',data:event});}catch{/* 单个日志查看者独立。 */}
-      });
+      r.child.once('spawn',()=>{if(!r.closed){r.view.status='running';if(!r.view.readiness.ready)r.view.readiness.reason='进程运行中，就绪未确认';emit(r);}});
       let checking=false;r.healthTimer=setInterval(async()=>{if(checking||r.closed||r.view.readiness.ready)return;checking=true;try{if(await probePort(plan.port)&&!r.closed){r.view.readiness={ready:false,evidence:['tcp'],reason:'端口可连接，应用就绪仍未确认'};emit(r);}}finally{checking=false;}},1500);r.healthTimer.unref();
       await emit(r);return view(r);
-    }catch(error){r.closed=true;r.view.status='failed';r.view.error=failure(error).error;await logs.close(id.projectKey);await emit(r);fail('START_FAILED','无法启动 Java 子进程，请检查 JDK 与配置');}
+    }catch(error){r.closed=true;r.view.status='failed';r.view.error=failure(error).error;await logs.close(id.projectKey);r.offLogs?.();await emit(r);fail('START_FAILED','无法启动 Java 子进程，请检查 JDK 与配置');}
   }
   async function stopRecord(r){
     if(r?.view.status==='orphaned')fail('ORPHANED_SERVICE','无法通过旧 PID 停止遗留服务，请人工处理');
