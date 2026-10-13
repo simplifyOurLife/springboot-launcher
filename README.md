@@ -2,6 +2,8 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
+[Project website](https://simplifyOurLife.github.io/springboot-launcher/) · [Getting started](https://simplifyOurLife.github.io/springboot-launcher/#get-started)
+
 Manage local Spring Boot services from Codex, Claude Code, or a shared web dashboard. Start and stop services, organize projects, and follow their logs without opening an IDE.
 
 **Version 0.1.0 — first foundational release.** The current target is local Maven Spring Boot development on Windows. Full real-project and cross-client acceptance is still pending; see the [release notes](docs/releases/0.1.0.md) and [acceptance checklist](docs/verification/alpha-acceptance.md), currently in Chinese. Source: [simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher). No npm package has been published.
@@ -121,7 +123,7 @@ npm test
 npm pack --dry-run --json --ignore-scripts
 ```
 
-Automated tests use isolated fixtures and simulated processes; they do not build real Java projects. A Windows CI workflow is prepared, but its cloud run remains pending until a repository is configured.
+Automated tests use isolated fixtures and simulated processes; they do not build real Java projects. Windows CI runs on GitHub Actions; see [workflow results](https://github.com/simplifyOurLife/springboot-launcher/actions/workflows/test.yml). The public website lives in `site/` and deploys directly to GitHub Pages without a frontend build.
 
 [Architecture](documentation/architecture.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Changelog](CHANGELOG.md) · [Release checklist](docs/release-readiness.md). Supporting documents are currently primarily in Chinese.
 
