@@ -9,7 +9,7 @@ import {ensureBackend} from '../src/runtime/instance.mjs';
 import {createBackendClient} from '../src/runtime/client.mjs';
 import {runDaemon} from '../src/runtime/daemon.mjs';
 import {failure} from '../src/core/errors.mjs';
-const help='Spring Boot 启动器 0.1.0-alpha.1\n用法：\n  mcp                              供 Codex / Claude Code 使用\n  dashboard [--no-open]             打开实时日志面板\n  status                           查看所有托管服务\n  daemon stop [--stop-services]     退出后台；默认拒绝仍有服务的退出\n  daemon forget --dir DIR --confirm-orphan  确认已人工处理后遗忘异常记录\n  --help                           显示帮助\n';
+const help='Spring Boot 启动器 0.1.0\n用法：\n  mcp                              供 Codex / Claude Code 使用\n  dashboard [--no-open]             打开实时日志面板\n  status                           查看所有托管服务\n  daemon stop [--stop-services]     退出后台；默认拒绝仍有服务的退出\n  daemon forget --dir DIR --confirm-orphan  确认已人工处理后遗忘异常记录\n  --help                           显示帮助\n';
 async function openLocalBrowser(url){
   if(process.platform!=='win32')return;
   const env={...process.env};for(const key of Object.keys(env))if(key.toLowerCase()==='psmodulepath')delete env[key];

@@ -15,6 +15,6 @@ mvn package
 - 面板每 5 秒出现中文日志，每三次输出一次演示 stderr；HTML 文字应原样展示。
 - 浏览器打开 `http://127.0.0.1:8087/ping`，应返回中文 JSON；健康接口应返回 UP。
 - 启用 Spring Profile `local` 并将端口覆盖留空，应用应使用 8088；健康检查地址也相应改为 8088。
-- 按[完整验收步骤](../../docs/verification/mvp.md) 测试 Codex 启动、CC 查询停止，以及反向操作。
+- 按[Alpha 简短验收表](../../docs/verification/alpha-acceptance.md) 测试 Codex 启动、CC 查询停止，以及反向操作，并记录真实结果。
 
-停止服务由面板或 MCP 执行。修改示例源码后请重新手工构建；不要提交 target、logs 或本机状态。
+停止服务由面板或 MCP 执行。上文采用手工构建以单独验证已有产物路径；如要验收自动准备，可在允许编译和下载的本示例中直接普通启动，缺少或过期产物时启动器会托管 Maven 准备。固定只运行已有产物时通过 MCP 设置 noBuild:true。不要提交 target、logs 或本机状态。

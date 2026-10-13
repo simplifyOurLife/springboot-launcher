@@ -8,12 +8,15 @@ import {startBackend} from '../backend/server.mjs';
 import {readState,atomicState,withInstanceGuard} from './instance.mjs';
 import {preparePrivateHome} from './private-dir.mjs';
 import {fail} from '../core/errors.mjs';
+import {createWorkspaceStore} from '../backend/workspace.mjs';
 export async function runDaemon({home,instanceId,managerFactory=options=>createServiceManager({...options,logs:createLogStore()})}){
   await preparePrivateHome(home);const lockFile=path.join(home,'backend.lock'),stateFile=path.join(home,'services.json'),instanceFile=path.join(home,'instance.json');
   await withInstanceGuard(home,async()=>{const lock=await readState(lockFile);if(!instanceId||lock?.instanceId!==instanceId)fail('BACKEND_UNAVAILABLE','后台启动锁已改变');await atomicState(lockFile,{ownerPid:process.pid,instanceId});});
   const initialRecords=await readState(stateFile)||[];if(!Array.isArray(initialRecords))fail('BACKEND_UNAVAILABLE','服务恢复记录无效');
   const manager=managerFactory({initialRecords,persistServices:records=>atomicState(stateFile,records)}),token=randomBytes(32).toString('hex');
-  const backend=await startBackend({manager,auth:createAuth({token}),instanceId,onShutdown:async()=>{
+  const workspaceFile=path.join(home,'workspace.json');
+  const workspace=createWorkspaceStore({initialState:await readState(workspaceFile)||undefined,persist:data=>atomicState(workspaceFile,data)});
+  const backend=await startBackend({manager,workspace,auth:createAuth({token}),instanceId,onShutdown:async()=>{
     await withInstanceGuard(home,async()=>{
       const owned=await readState(lockFile);if(owned?.instanceId===instanceId){
         // 正常退出不等于人工遗忘；未确认的旧 JVM 保护必须跨后台保留。

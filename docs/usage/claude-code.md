@@ -16,4 +16,6 @@ claude mcp add --transport stdio springboot-launcher -- node "D:\tools\springboo
 
 也可以由 CC 启动，再由 Codex 查询或停止。CC 终端的实时查看入口为同一个系统浏览器页面：调用 `spring_boot_dashboard`，打开返回的短期链接。关闭 CC 会话不停止 JVM。
 
+普通启动在产物缺少或过期时自动准备 Maven 编译及依赖，不需要单独的构建按钮。默认先离线；未显式设置 `mvnOffline` 且识别到明确缓存缺失时自动联网重试一次。`mvnOffline:true` 固定离线，`mvnOffline:false` 直接允许联网下载，`noBuild:true` 禁止自动准备。准备期间也可查询状态、看日志、停止和重启。
+
 MCP 使用原生 STDIO 代理，不需要为 CC 单独启动第二份后台，也不需要复制本机控制凭据。状态不一致时先检查两个客户端是否用了不同 Windows 用户或后台目录，见[故障排查](troubleshooting.md)。

@@ -12,9 +12,9 @@ codex mcp add springboot-launcher -- node "D:\tools\springboot-launcher\bin\spri
 
 可以告诉 Codex：
 
-> 请检查 D:\demo\orders-service 的 Spring Boot 运行条件。使用已有产物，以 local Profile 和 8087 端口启动，不执行构建。打开实时日志面板。
+> 请检查 D:\demo\orders-service 的 Spring Boot 运行条件，以 local Profile 和 8087 端口启动，缺少或过期产物时自动准备 Maven 编译及依赖。打开实时日志面板。
 
-如返回 `BUILD_REQUIRED`，请自行准备产物后再启动。JDK 选择不正确时明确指定 `jdkHome`。MCP 的启动参数包括 `dir`、`profile`、`port`、`jdkHome`、`mode`、`jarPath`、`mainClass`、`classpath`（字符串数组）、`jvmArgs`（字符串数组）、`healthUrl`；未知字段会被拒绝。
+普通启动会在需要时准备 Maven 产物，日志可在面板实时查看，准备期间可以停止或重启。默认先离线；未显式设置 `mvnOffline` 且检测到明确的离线缓存缺失时，自动联网重试一次。MCP 可用 `mvnOffline:true` 固定离线、`mvnOffline:false` 直接允许联网。只想运行已有产物时设置 `noBuild:true`，此时缺少产物返回 `BUILD_REQUIRED`。准备失败显示 `BUILD_FAILED`，应先查看日志。JDK 选择不正确时指定 `jdkHome`。其他启动参数包括 `dir`、`profile`、`port`、`mode`、`jarPath`、`mainClass`、`classpath`（字符串数组）、`jvmArgs`（字符串数组）、`healthUrl`；未知字段会被拒绝。
 
 `port` 不填时保留 Spring 配置优先级，不追加端口覆盖，面板会显示未指定端口。需要提前检查端口冲突时明确填写端口。可选 `healthUrl` 例如 `http://127.0.0.1:8087/actuator/health`，只支持无凭据的本机 HTTP 地址；启用后持续依据健康接口判断，DOWN、401、超时不会被启动日志覆盖为健康。
 

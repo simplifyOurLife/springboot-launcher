@@ -8,9 +8,10 @@ export function text(value,label,{optional=false,max=4096}={}) {
   if(typeof value!=='string'||!value.trim()||value.length>max||/[\x00-\x1f\x7f]/.test(value))fail('INVALID_ARGUMENT',`${label} 必须是有效的文本`);
 }
 export function validateTool(name,args={}) {
-  const fields={spring_boot_discover:['root','depth','maxDirs','timeoutMs'],spring_boot_inspect:['dir'],spring_boot_start:['dir','profile','port','jdkHome','mode','jarPath','mainClass','classpath','jvmArgs','healthUrl'],spring_boot_status:['dir'],spring_boot_logs:['dir','lines','after'],spring_boot_stop:['dir'],spring_boot_restart:['dir'],spring_boot_dashboard:[]}[name];
+  const fields={spring_boot_discover:['root','depth','maxDirs','timeoutMs'],spring_boot_inspect:['dir'],spring_boot_start:['dir','profile','port','jdkHome','mode','jarPath','mainClass','classpath','jvmArgs','healthUrl','noBuild','mvnOffline'],spring_boot_status:['dir'],spring_boot_logs:['dir','lines','after'],spring_boot_stop:['dir'],spring_boot_restart:['dir'],spring_boot_dashboard:[]}[name];
   if(!fields||!args||typeof args!=='object'||Array.isArray(args))fail('INVALID_ARGUMENT','工具名称或参数无效');
   for(const key of Object.keys(args))if(!fields.includes(key))fail('INVALID_ARGUMENT',`不支持参数 ${key}`);
+  for(const key of ['noBuild','mvnOffline'])if(args[key]!==undefined&&typeof args[key]!=='boolean')fail('INVALID_ARGUMENT',`${key} 必须是布尔值`);
   if(name==='spring_boot_discover')text(args.root,'root');
   if(!['spring_boot_discover','spring_boot_dashboard','spring_boot_status'].includes(name))text(args.dir,'dir');
   if(args.dir!==undefined)text(args.dir,'dir');

@@ -23,6 +23,16 @@ test('并发启动只产生一个托管进程，重启等待停止且保存日�
   const restarted=await s.manager.restart(s.f.dir);assert.equal(s.count,2);assert.notEqual(restarted.pid,both[0].pid);
   assert.equal((await s.manager.stop(s.f.dir)).status,'stopped');
 });
+
+test('彩色启动标志跨事件仍能确认就绪，Profile 随运行配置返回',async t=>{
+  const f=await fixture(),manager=createServiceManager({logs:createLogStore(),prepareLaunch:async request=>({...await normalizeProjectDir(request.dir),executable:process.execPath,args:['-e',"console.log('The following 2 profiles are active: \\\"prod\\\", \\\"metrics\\\"');console.log('\\x1b[32mStarted\\x1b[0m Demo in 1.2 seconds');setInterval(()=>{},1000)"],profile:request.profile,mode:'classpath',port:null})});
+  t.after(async()=>{await manager.shutdown({stopServices:true});await f.cleanup();});
+  assert.equal((await manager.start({dir:f.dir,profile:'local'})).profile,'local');
+  await waitFor(async()=> (await manager.status(f.dir)).readiness.ready);
+  assert.equal((await manager.status(f.dir)).profile,'prod,metrics');
+  assert.equal((await manager.status(f.dir)).profileSource,'runtime-log');
+  assert.equal((await manager.restart(f.dir)).profile,'local');
+});
 test('进程快速失败保留退出码和尾日志',async t=>{
   const s=await setup(t,{fast:true});await s.manager.start({dir:s.f.dir});
   const end=await waitFor(async()=>{const v=await s.manager.status(s.f.dir);return v.status==='failed'&&v;});assert.equal(end.exitCode,2);assert.ok((await s.manager.logs(s.f.dir,{})).text.includes('模拟标准错误'));
@@ -38,7 +48,7 @@ test('异常旧记录必须人工确认，不能使用旧 PID',async t=>{
   assert.equal((await manager.confirmOrphan(f.dir,{acknowledge:true})).status,'stopped');
 });
 test('停止失败时重启不得产生第二个进程',async t=>{
-  const s=await setup(t,{stopTimeoutMs:40});await s.manager.start({dir:s.f.dir});const original=s.child.kill.bind(s.child);s.child.kill=()=>false;
+  const s=await setup(t);await s.manager.start({dir:s.f.dir});const original=s.child.kill.bind(s.child);s.child.kill=()=>false;
   await assert.rejects(s.manager.restart(s.f.dir),{code:'STOP_FAILED'});assert.equal(s.count,1);s.child.kill=original;
 });
 test('实时查看者能收到首条系统启动日志',async t=>{

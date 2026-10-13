@@ -1,7 +1,7 @@
 import * as disk from 'node:fs/promises';
 import path from 'node:path';
 import {StringDecoder} from 'node:string_decoder';
-import {stripVTControlCharacters} from 'node:util';
+import {createAnsiDecoder} from './ansi.mjs';
 import {LIMITS} from '../core/contracts.mjs';
 const MAX_EVENTS=2000,CHUNK_BYTES=32768;
 const sizeOf=value=>Buffer.byteLength(JSON.stringify(value));
@@ -16,8 +16,8 @@ export function createLogStore({maxBytes=LIMITS.logBytes,fileBytes=LIMITS.fileBy
     for(let n=fileCount-1;n>=1;n--){const from=n===1?s.file:s.file+'.'+(n-1),to=s.file+'.'+n;await fs.rm(to,{force:true});try{await fs.rename(from,to);}catch(e){if(e.code!=='ENOENT')throw e;}}
     s.fileSize=0;
   }
-  function record(key,s,source,text,truncated=false){
-    const event={projectKey:key,seq:++s.seq,time:clock(),source,text,persistenceError:s.persistenceError,...(truncated?{truncated:true}:{})};
+  function record(key,s,source,text,truncated=false,style=null){
+    const event={projectKey:key,seq:++s.seq,runStartSeq:s.runStartSeq,time:clock(),source,text,...(style?{style}:{}),persistenceError:s.persistenceError,...(truncated?{truncated:true}:{})};
     s.events.push(event);s.bytes+=sizeOf(event);
     // 同时限制事件对象数量和序列化容量，单字节输出不能撑大数组。
     while((s.bytes>maxBytes||s.events.length>MAX_EVENTS)&&s.events.length){s.bytes-=sizeOf(s.events.shift());s.lostPrefix=true;}
@@ -27,13 +27,13 @@ export function createLogStore({maxBytes=LIMITS.logBytes,fileBytes=LIMITS.fileBy
     if(s.persistenceError)return;s.persistenceError=message;
     record(key,s,'system','\n[启动器] '+message+'\n');
   }
-  function append(key,source,input){
+  function append(key,source,input,style=null){
     const s=get(key);if(!s||s.closed||!input)return;
-    const clean=stripVTControlCharacters(input),text=tailUtf8(clean,maxBytes);if(!text)return;
+    const clean=input,text=tailUtf8(clean,maxBytes);if(!text)return;
     const bytes=Buffer.from(text);let offset=0,first=true;
     // 每个实时事件足够小；大型输出仍由多个连续序号传输。
     while(offset<bytes.length){let end=Math.min(offset+CHUNK_BYTES,bytes.length);while(end<bytes.length&&(bytes[end]&0xc0)===0x80)end--;
-      record(key,s,source,bytes.subarray(offset,end).toString('utf8'),first&&text!==clean);offset=end;first=false;
+      record(key,s,source,bytes.subarray(offset,end).toString('utf8'),first&&text!==clean,style);offset=end;first=false;
     }
     if(text!==clean)s.lostPrefix=true;
     if(!s.persistenceError){
@@ -55,14 +55,22 @@ export function createLogStore({maxBytes=LIMITS.logBytes,fileBytes=LIMITS.fileBy
   return {
     async open(key,dir){
       const existing=get(key);if(existing&&!existing.closed)return existing.file;
-      const s={file:path.join(dir,'logs/springboot-launcher.log'),fileSize:0,seq:existing?.seq||0,events:existing?.events||[],bytes:existing?.bytes||0,listeners:existing?.listeners||new Set(),lostPrefix:existing?.lostPrefix||false,closed:false,decoders:{stdout:new StringDecoder('utf8'),stderr:new StringDecoder('utf8')},queue:Promise.resolve(),pendingBytes:0,persistenceError:null};stores.set(key,s);
+      // 每次服务启动独立缓冲；序号持续递增供 SSE 重连去重，磁盘日志仍追加保留。
+      const s={file:path.join(dir,'logs/springboot-launcher.log'),fileSize:0,seq:existing?.seq||0,runStartSeq:(existing?.seq||0)+1,events:[],bytes:0,listeners:existing?.listeners||new Set(),lostPrefix:false,closed:false,ansi:{stdout:createAnsiDecoder(),stderr:createAnsiDecoder(),system:createAnsiDecoder()},decoders:{stdout:new StringDecoder('utf8'),stderr:new StringDecoder('utf8')},queue:Promise.resolve(),pendingBytes:0,persistenceError:null};stores.set(key,s);
       try{await fs.mkdir(path.dirname(s.file),{recursive:true});s.fileSize=(await fs.stat(s.file).catch(()=>({size:0}))).size;if(s.fileSize>fileBytes)await rotate(s);}catch{s.persistenceError='无法创建日志文件；实时日志仍可查看';}
       return s.file;
     },
-    appendChunk(key,source,bytes){const s=get(key);if(s)append(key,source,source==='system'?Buffer.from(bytes).toString('utf8'):s.decoders[source].write(bytes));},
-    finishStream(key,source){const s=get(key);if(s?.decoders[source])append(key,source,s.decoders[source].end());},
+    appendChunk(key,source,bytes){const s=get(key);if(s)for(const run of s.ansi[source].write(source==='system'?Buffer.from(bytes).toString('utf8'):s.decoders[source].write(bytes)))append(key,source,run.text,run.style);},
+    finishStream(key,source){const s=get(key);if(s?.decoders[source])for(const run of s.ansi[source].write(s.decoders[source].end()))append(key,source,run.text,run.style);},
+    beginProcess(key){
+      const s=get(key);if(!s||s.closed)return;
+      // Maven 与 Java 是不同输出流；不能继承前一进程未复位的颜色或半截 UTF-8／ANSI。
+      for(const source of ['stdout','stderr']){this.finishStream(key,source);s.decoders[source]=new StringDecoder('utf8');s.ansi[source]=createAnsiDecoder();}
+    },
     snapshot(key,{after=0,lines=100,maxBytes:cap=LIMITS.mcpBytes}={}){
-      const s=get(key),base={events:[],lastSeq:s?.seq||0,gap:false,text:'',truncated:false,persistenceError:s?.persistenceError||null};if(!s)return base;
+      const s=get(key),base={projectKey:key,events:[],lastSeq:s?.seq||0,runStartSeq:s?.runStartSeq||1,gap:false,text:'',truncated:false,persistenceError:s?.persistenceError||null};if(!s)return base;
+      // 上轮的序号范围不属于本轮缺口，包括新页面默认请求 after=0 的情形。
+      after=Math.max(after,s.runStartSeq-1);
       const candidates=s.events.filter(e=>e.seq>after),raw=candidates.map(e=>e.text).join(''),parts=raw.split('\n');
       let remaining=Buffer.byteLength(parts.length>lines?parts.slice(-lines).join('\n'):raw);
       let budget=Math.min(cap,maxBytes)-sizeOf(base);const events=[];

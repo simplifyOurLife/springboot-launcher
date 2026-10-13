@@ -17,6 +17,7 @@ target/
 *.pid
 *.lock.tmp
 backend-state.json
+workspace.json
 instance.json
 
 # 凭据与个人配置

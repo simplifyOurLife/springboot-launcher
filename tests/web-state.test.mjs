@@ -2,6 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createViewState,reduceEvent} from '../web/state.mjs';
 const event=(seq,text)=>({type:'log',data:{projectKey:'demo',seq,text,time:'2026-10-09',source:'stdout'}});
+
+test('日志缺口可手动关闭，本轮后续日志和重连不重复提示，新轮次恢复提示资格',()=>{
+  let s=reduceEvent(createViewState(),{type:'log',data:{...event(3,'本轮').data,runStartSeq:1}});
+  assert.equal(s.gap,true);
+  s=reduceEvent(s,{type:'dismiss-gap'});assert.equal(s.gapDismissed,true);
+  s=reduceEvent(s,{type:'snapshot',data:{runStartSeq:1,events:[{...event(4,'继续').data,runStartSeq:1}],lastSeq:4,gap:true}});
+  assert.equal(s.gapDismissed,true);assert.equal(s.text,'本轮继续');
+  s=reduceEvent(s,{type:'log',data:{...event(7,'新一轮').data,runStartSeq:5}});
+  assert.equal(s.gapDismissed,false);assert.equal(s.gap,true);
+});
 test('重连重复事件去重，缺失序号标出日志缺口',()=>{
   let s=createViewState();s=reduceEvent(s,event(1,'第一行\n'));s=reduceEvent(s,event(1,'第一行\n'));assert.equal(s.text,'第一行\n');
   s=reduceEvent(s,event(3,'第三行\n'));assert.equal(s.gap,true);assert.equal(s.receivedSeq,3);

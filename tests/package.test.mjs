@@ -14,7 +14,10 @@ test('发行包明确列出产品文件，排除测试、状态和秘密材料',
   const npmCli=process.env.npm_execpath||path.join(path.dirname(process.execPath),'node_modules/npm/bin/npm-cli.js');
   const {stdout}=await promisify(execFile)(process.execPath,[npmCli,'pack','--dry-run','--json','--ignore-scripts'],{cwd:root,windowsHide:true,timeout:60000,maxBuffer:2*1024*1024});
   const files=JSON.parse(stdout)[0].files.map(file=>file.path);
-  for(const expected of ['bin/springboot-launcher.mjs','src/logs/log-store.mjs','src/runtime/daemon.mjs','web/index.html','web/app.mjs','scripts/private-dir.ps1','scripts/open-browser.ps1','LICENSE','THIRD_PARTY_NOTICES.md','README.md','docs/usage/codex.md','docs/usage/claude-code.md'])assert.ok(files.includes(expected),`发行包缺少 ${expected}`);
+  for(const expected of ['bin/springboot-launcher.mjs','src/logs/log-store.mjs','src/logs/ansi.mjs','src/runtime/daemon.mjs','src/backend/workspace.mjs','src/backend/folder-picker.mjs','web/index.html','web/app.mjs','scripts/private-dir.ps1','scripts/open-browser.ps1','scripts/select-project-folder.ps1','LICENSE','THIRD_PARTY_NOTICES.md','README.md','docs/usage/codex.md','docs/usage/claude-code.md'])assert.ok(files.includes(expected),`发行包缺少 ${expected}`);
   assert.ok(files.includes('examples/demo-service/pom.xml'));
-  assert.equal(files.some(file=>/(?:^|\/)(?:node_modules|tests|target|\.superpowers|\.git|\.env)(?:\/|$)|instance\.json|services\.json|backend\.(?:lock|guard)|\.(?:log|jar|class)$/.test(file)),false);
+  assert.ok(files.includes('scripts/run-maven.ps1'),'发行包必须包含 Windows Maven 参数执行脚本');
+  assert.ok(files.includes('src/project/profiles.mjs'),'发行包必须包含 Profile 配置解析模块');
+  for(const file of ['main-classes','reactor','build-instructions'])assert.ok(files.includes(`src/project/${file}.mjs`),`发行包必须包含 ${file}`);
+  assert.equal(files.some(file=>/(?:^|\/)(?:node_modules|tests|target|\.superpowers|\.git|\.env)(?:\/|$)|instance\.json|services\.json|workspace\.json|backend\.(?:lock|guard)|\.(?:log|jar|class)$/.test(file)),false);
 });

@@ -23,7 +23,9 @@ export function zip(entries) {
 export async function fixture(kind='fat-jar', overrides={}) {
   await mkdir(fixtureHome,{recursive:true});
   const root = await mkdtemp(path.join(fixtureHome,'springboot-launcher-测试 '));
-  const dir = path.join(root,'中文 工程'), jdkHome = path.join(root,'JDK 路径');
+  const dirName = overrides.dirName || '中文 工程';
+  if (path.basename(dirName) !== dirName || ['.', '..'].includes(dirName)) throw new Error('夹具项目名称只能是单个目录名');
+  const dir = path.join(root,dirName), jdkHome = path.join(root,'JDK 路径');
   await mkdir(path.join(dir,'src/main/java/demo'),{recursive:true});
   await mkdir(path.join(dir,'target/classes/demo'),{recursive:true});
   await mkdir(path.join(jdkHome,'bin'),{recursive:true});

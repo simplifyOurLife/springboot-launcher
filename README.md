@@ -1,18 +1,31 @@
-# Spring Boot 启动器
+# Spring Boot Launcher
 
-在 Codex 或 Claude Code 中操作本地 Spring Boot 服务，在同一网页面板实时查看日志，无需为启停服务打开 IDEA。
+**English** · [简体中文](README.zh-CN.md)
 
-当前版本为 **0.1.0-alpha.1，本地 MVP，待真实工程验收**。共享后台、八个 MCP 工具和中文面板已经实现，自动测试及模拟浏览器验证见[验证记录](docs/verification/mvp.md)。尚未公开发布 GitHub 仓库或 npm 包。
+Manage local Spring Boot services from Codex, Claude Code, or a shared web dashboard. Start and stop services, organize projects, and follow their logs without opening an IDE.
 
-![中文服务管理与实时日志面板](docs/assets/mvp-panel-demo.jpg)
+**Version 0.1.0 — first foundational release.** The current target is local Maven Spring Boot development on Windows. Full real-project and cross-client acceptance is still pending; see the [release notes](docs/releases/0.1.0.md) and [acceptance checklist](docs/verification/alpha-acceptance.md), currently in Chinese. Source: [simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher). No npm package has been published.
 
-截图使用隔离模拟项目，日志不是实际业务数据，不能代表真实 Spring Boot 验收。
+## What is this project?
 
-## 使用
+This is a **local service management tool with an MCP server interface, a CLI, and a web dashboard**. A shared Node.js backend owns the managed processes and log collection. Codex and Claude Code connect through stdio MCP proxies to that same backend. It is not an Agent Skill; a Skill could provide instructions for using these tools, but is not required.
 
-首版环境：Windows 11、PowerShell 7、Node.js 22.22.2 或更新的兼容版本，以及目标工程要求的可信 JDK。只支持 Maven Spring Boot 的已有可执行 jar 或 classes。Gradle、其他操作系统、远程访问和固定客户端侧栏尚未验收。
+The backend starts on demand. You do not need to start a separate Node server in a terminal before using the dashboard or MCP tools. Closing a chat does not stop managed services.
 
-取得本仓库源码，放在任意本地目录，例如 `D:\tools\springboot-launcher`。在该目录执行：
+![English dashboard with profiles and colored live logs](docs/assets/panel-current-workbench-en.jpg)
+
+Screenshots show isolated sample projects and Node-generated demo output, not business data or proof of real Spring Boot acceptance. The focused view below shows the Chinese interface. The dashboard supports English and Simplified Chinese, with a language selector in the top bar. It follows the browser language on first use and remembers an explicit selection for the current dashboard origin. A new backend port uses a separate browser storage scope.
+
+![Log-focused view with project and service sections collapsed](docs/assets/panel-current-log-focus.jpg)
+
+## Requirements and installation
+
+- Windows 11 and PowerShell 7.
+- Node.js 22.22.2 or a newer compatible version.
+- A trusted JDK compatible with your target project.
+- A Maven Wrapper in the project, or Maven discoverable through `MAVEN_HOME`, `M2_HOME`, or `PATH`, when artifact preparation is needed.
+
+Download or clone the source to a local directory, such as `D:\tools\springboot-launcher`, then run these commands there:
 
 ```powershell
 npm ci --ignore-scripts --no-audit --no-fund
@@ -20,44 +33,96 @@ node .\bin\springboot-launcher.mjs --help
 node .\bin\springboot-launcher.mjs dashboard
 ```
 
-最后一条命令打开本机面板。添加**可信工程的应用模块目录**，点击检查，填写 Profile、JDK、端口等配置，再启动。缺少或过期产物时提示 `BUILD_REQUIRED`，请自行构建后重试；启动器不会执行 Maven 或前端 build。
+The project configuration and lockfile use the official npm registry. Dependencies are pinned; the package remains `private:true` to prevent accidental npm publication.
 
-接入说明：[Codex](docs/usage/codex.md) · [Claude Code](docs/usage/claude-code.md) · [故障排查](docs/usage/troubleshooting.md)。两个客户端使用同一 Windows 用户和同一后台目录即可共享服务，无需分别部署后台。
+Click **+** or **Import project**, then choose a trusted project directory in the Windows folder picker. Selecting a repository root discovers its Maven Spring Boot application modules. You can create logical folders before importing or drag projects between groups later.
 
-如需先用不含业务配置的工程验收，可使用[公开示例](examples/demo-service/README.md)，按其中说明自行构建后再启动。
+Select a service to review its detected profiles and compatible JDK candidates in **Run settings**. Leave the port blank to use application configuration. Click **Start service**: missing or stale artifacts trigger Maven preparation automatically, with its output shown in the same log panel. There is no separate build button.
 
-## 服务与日志
+To remove an individual project, use the trash button in its sidebar row or the **Remove service** button in the service header. Stop it first; running or orphaned services cannot be removed. Both entries ask for confirmation. This removes launcher records only, keeping the project and log files on disk. It can be imported again later.
 
-- 支持检查、发现、启动、查询状态、读取日志、停止、重启、打开面板。
-- 聊天结束不会停止服务。停止只作用于当前后台拥有的子进程，不按端口终止其他程序。
-- 面板可暂停显示、搜索当前缓冲、复制和跟随滚动；断线后补取有限日志，缺口明确提示。
-- “进程运行中”与“应用就绪”分别显示。仅端口可连接时不宣布就绪，可选本机 Actuator 健康检查持续确认 UP／DOWN。
-- 每个项目内存日志最多 512 KiB；项目 `logs` 目录保留最多四份、每份 10 MiB 的轮转日志。主动通过 MCP 查询的片段会进入当前 AI 会话。
+The project sidebar starts at 320px. Drag its right edge to resize it, use arrow keys when the separator is focused, or double-click to reset. Width is remembered for the current dashboard origin. Service names occupy the first row; actions follow service status. Remove controls appear on selection, hover, or keyboard focus.
 
-后台仅监听 `127.0.0.1`，端口自动分配，默认状态目录为 `%LOCALAPPDATA%\springboot-launcher`。面板链接含 60 秒单次票据，过期时重新打开；不要分享链接或本机状态文件。
+## Connect an MCP client
+
+Replace the example path with the absolute location of your checkout. `node` must be available in the client's environment.
+
+Codex:
 
 ```powershell
-# 查看状态；无后台时会按需创建后台
+codex mcp add springboot-launcher -- node "D:\tools\springboot-launcher\bin\springboot-launcher.mjs" mcp
+```
+
+Claude Code:
+
+```powershell
+claude mcp add --transport stdio springboot-launcher -- node "D:\tools\springboot-launcher\bin\springboot-launcher.mjs" mcp
+```
+
+Reopen the client and check its MCP connection. These commands are for you to run; installation does not modify your existing client configuration. Both clients share services when using the same Windows user and backend directory. If you set `SPRINGBOOT_LAUNCHER_HOME`, use the same absolute directory in both clients.
+
+Available tools:
+
+| Tool | Purpose |
+| --- | --- |
+| `spring_boot_discover` | Find application modules |
+| `spring_boot_inspect` | Inspect a project and its runtime options |
+| `spring_boot_start` | Start a service, preparing artifacts if needed |
+| `spring_boot_status` | Query managed service state |
+| `spring_boot_logs` | Read a bounded log excerpt |
+| `spring_boot_stop` | Stop a managed service |
+| `spring_boot_restart` | Restart with the previous run configuration |
+| `spring_boot_dashboard` | Generate a short-lived dashboard link |
+
+Example request:
+
+> Inspect D:\demo\orders-service, start it with the local profile and port 8087, prepare Maven artifacts if needed, and open its live log dashboard.
+
+Detailed setup and troubleshooting are currently in Chinese: [Codex](docs/usage/codex.md), [Claude Code](docs/usage/claude-code.md), [troubleshooting](docs/usage/troubleshooting.md).
+
+## Services and logs
+
+- Profiles come from local `application*.properties/yml/yaml` files; the active/default profile is detected where possible. Runtime startup logs can correct the displayed profile. External configuration and unresolved placeholders remain subject to Spring's own resolution.
+- JDK discovery reads environment variables, `PATH`, common installation directories, sibling installations, and existing IDEA `.jdks` directories. Candidates show compatibility and source; a custom directory is also supported.
+- Only modules with a detected Boot entry point are imported. Inheriting Spring Boot alone does not make a shared library an application. Old import records are checked again, while unreadable or active projects are preserved.
+- Existing runnable artifacts are preferred. When necessary, normal startup prepares compilation and runtime dependencies. Multi-module preparation uses the reactor and declared dependencies; this is not a full Maven effective-POM implementation.
+- Preparation starts offline. An explicit offline-cache-miss failure can trigger one online retry unless `mvnOffline:true` was explicitly requested. Use `mvnOffline:false` to allow online preparation directly, or `noBuild:true` to require existing artifacts.
+- A pre-readiness missing-class exit may trigger one dependency repair if preparation has not already run. Business connection/configuration errors do not trigger unlimited rebuilds. A Maven failure only falls back to direct launch when artifacts recheck successfully and no compilation failure was detected.
+- Stop gives immediate visual feedback and keeps collecting logs until output pipes close. On Windows, Java termination first tries a non-forced stop, then forces termination after up to eight seconds. JVM shutdown hooks and complete application shutdown output are not guaranteed.
+- Search retains continuous log context, highlights matching lines and keywords, and supports previous/next navigation. Searching pauses automatic scrolling while the backend continues collecting output.
+- ANSI standard, 256-color, and RGB output is supported, including common text styles. Log files, copied output, and search remain plain text. Language switching does not translate application logs, project names, paths, or configuration values.
+- Project navigation and service details collapse independently. The focused log view keeps the current service name visible. Layout state and unsaved run settings last for the current page only.
+- The display window is limited to 1,200 lines. Search covers the current buffer, not all files on disk. Each project has a 512 KiB memory log buffer and up to four rotating 10 MiB log files.
+- Process state and readiness are separate. A listening port alone does not prove readiness; an optional local HTTP Actuator health URL can confirm `UP` or `DOWN`.
+
+## Local access and upgrades
+
+The backend listens only on `127.0.0.1`, with an automatically assigned port. Its default state directory is `%LOCALAPPDATA%\springboot-launcher`. Dashboard links contain single-use tickets valid for 60 seconds; generate a new link if one expires. Do not share tickets or local state files.
+
+```powershell
+# Query state; start the backend on demand if necessary
 node .\bin\springboot-launcher.mjs status
-# 没有运行服务时退出后台
+# Exit the backend only when no services are active
 node .\bin\springboot-launcher.mjs daemon stop
-# 明确停止全部托管服务并退出后台
+# Explicitly stop all managed services and exit the backend
 node .\bin\springboot-launcher.mjs daemon stop --stop-services
 ```
 
-Windows 停止操作不保证执行 JVM 优雅关闭钩子。后台异常后的遗留进程需要人工处理，不会自动接管。启动器以当前用户权限运行可信应用，不提供应用沙箱。
+Before upgrading, stop managed services and exit the backend, update source and dependencies, then run `dashboard` again. The backend does not hot-reload source changes; refreshing an old port does not load a new backend version.
 
-端口留空时采用应用配置，面板不猜测实际端口；显式填写时执行覆盖和冲突预检查。极少数后台交接中断需按故障排查人工处理，不能通过删锁强行启动第二后台。
+The launcher runs trusted applications with your current user permissions; it is not an application sandbox. It only stops its own managed processes. After a backend crash, orphaned processes require manual review and are not automatically adopted or killed by historical PID.
 
-## 开发与开源
+Gradle, non-Windows platforms, remote management, and a dedicated embedded client sidebar are outside the current acceptance scope. Real Java/Maven execution, complex projects, cross-client operation, and cloud CI still require complete acceptance records.
+
+## Development and contribution
 
 ```powershell
 npm test
 npm pack --dry-run --json --ignore-scripts
 ```
 
-测试使用隔离夹具和模拟子进程，不执行 Java 或前端 build。已准备 Windows CI 配置，云端执行仍待公开仓库建立后验证。
+Automated tests use isolated fixtures and simulated processes; they do not build real Java projects. A Windows CI workflow is prepared, but its cloud run remains pending until a repository is configured.
 
-[架构与权限](documentation/architecture.md) · [贡献指南](CONTRIBUTING.md) · [安全策略](SECURITY.md) · [行为准则](CODE_OF_CONDUCT.md) · [发布清单](docs/release-readiness.md) · [变更记录](CHANGELOG.md)。
+[Architecture](documentation/architecture.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Changelog](CHANGELOG.md) · [Release checklist](docs/release-readiness.md). Supporting documents are currently primarily in Chinese.
 
-采用 [Apache License 2.0](LICENSE)，外部来源和依赖见[第三方说明](THIRD_PARTY_NOTICES.md)。Codex、Claude Code、Spring Boot 等名称仅用于说明集成对象，本项目不代表这些产品的官方项目或背书。
+Licensed under [Apache License 2.0](LICENSE). Adapted code and dependency attribution are documented in [Third-party notices](THIRD_PARTY_NOTICES.md). This is an independent project, not an official Codex, Claude Code, or Spring Boot product.
