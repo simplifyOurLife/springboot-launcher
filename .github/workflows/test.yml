@@ -19,5 +19,6 @@ jobs:
           node-version: '22.22.2'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npm test
+      # Windows 集成测试会同时启动多个 PowerShell／Node 进程，串行运行避免抢占启动等待预算。
+      - run: npm run test:ci
       - run: npm pack --dry-run --json --ignore-scripts
