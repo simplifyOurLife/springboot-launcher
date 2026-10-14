@@ -10,8 +10,22 @@ export async function preparePrivateHome(input){
   if((await lstat(dir)).isSymbolicLink())fail('INVALID_ARGUMENT','后台目录不能是符号链接或联接');
   const marker=path.join(dir,'.launcher-owned');const owned=await readFile(marker,'utf8').catch(()=>null);
   if(owned!=='springboot-launcher/v1'){
-    if((await readdir(dir)).length)fail('INVALID_ARGUMENT','不能将已有非空目录改为启动器私有目录，请指定空目录');
-    await writeFile(marker,'springboot-launcher/v1',{flag:'wx',mode:0o600}).catch(async error=>{if(error.code!=='EEXIST'||await readFile(marker,'utf8')!=='springboot-launcher/v1')throw error;});
+    // 首次读取后另一代理可能刚创建标记。只等待空标记完成，不覆盖未知内容或接管普通目录。
+    async function markerReady(){
+      const until=performance.now()+1000;
+      while(performance.now()<until){
+        const value=await readFile(marker,'utf8').catch(()=>null);
+        if(value==='springboot-launcher/v1')return true;
+        if(value!=='')return false;
+        await new Promise(resolve=>setTimeout(resolve,25));
+      }
+      return false;
+    }
+    if((await readdir(dir)).length){
+      if(!await markerReady())fail('INVALID_ARGUMENT','不能将已有非空目录改为启动器私有目录，请指定空目录');
+    }else{
+      await writeFile(marker,'springboot-launcher/v1',{flag:'wx',mode:0o600}).catch(async error=>{if(error.code!=='EEXIST'||!await markerReady())throw error;});
+    }
   }
   try{
     if(process.platform==='win32'){
