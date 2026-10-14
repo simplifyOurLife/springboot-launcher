@@ -14,6 +14,8 @@
 
 先提交并推送 main，查看 Windows 自动验证。CI 通过后，给同一提交创建与 package.json 一致的 v1.0.1 标签。标签触发 .github/workflows/release.yml，工作流核对同 SHA 的 Windows CI 成功才创建 Release。
 
+Release 标题只使用标签版本号（如 v1.0.1），方便在 GitHub 的 Release list 中区分版本。
+
 发行资产包括 springboot-launcher-v1.0.1-windows.zip、checksums.txt、install.ps1 和 install.cmd。官网仅发布 site 目录；其安装引导从最新正式 Release 下载。公开网页不连接本机服务后台。
 
 发布后在隔离目录和独立 SPRINGBOOT_LAUNCHER_HOME 验证真实下载、SHA-256、npm 准备、稳定入口及面板；不要覆盖维护者现有安装、快捷方式或 MCP 配置。将实际结果追加到[本次验证记录](../verification/release-1.0.1.md)。

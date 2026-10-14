@@ -56,4 +56,4 @@ jobs:
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $notes = "docs/releases/$version.md"
           if (-not (Test-Path -LiteralPath $notes)) { throw '缺少本版本的发布说明' }
-          gh release create $env:GITHUB_REF_NAME "springboot-launcher-$env:GITHUB_REF_NAME-windows.zip" checksums.txt install.ps1 install.cmd --verify-tag --title "Spring Boot Launcher $version" --notes-file $notes --repo $env:GITHUB_REPOSITORY
+          gh release create $env:GITHUB_REF_NAME "springboot-launcher-$env:GITHUB_REF_NAME-windows.zip" checksums.txt install.ps1 install.cmd --verify-tag --title $env:GITHUB_REF_NAME --notes-file $notes --repo $env:GITHUB_REPOSITORY
