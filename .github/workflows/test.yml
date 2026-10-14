@@ -28,6 +28,5 @@ jobs:
           & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File ./tests/installer-flow.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: 隔离快捷方式启动验证
-        # 托管 runner 为 Windows Server；最终 .lnk 外观由 Win11 交互桌面的默认测试验证。
-        run: ./tests/shortcut-flow.ps1 -ServerCi
+        run: ./tests/shortcut-flow.ps1
       - run: npm pack --dry-run --json --ignore-scripts

@@ -18,6 +18,7 @@ test('发行包明确列出产品文件，排除测试、状态和秘密材料',
   assert.ok(files.includes('examples/demo-service/pom.xml'));
   assert.ok(files.includes('assets/springboot-launcher.ico'),'发行包必须包含桌面入口图标');
   assert.ok(files.includes('scripts/run-maven.ps1'),'发行包必须包含 Windows Maven 参数执行脚本');
+  assert.ok(files.includes('scripts/windows-shortcut.cs'),'发行包必须包含 Unicode 快捷方式接口');
   for(const file of ['Open Dashboard.cmd','scripts/install.ps1','scripts/open-dashboard.ps1','scripts/create-shortcuts.ps1','scripts/release-metadata.ps1','src/runtime/updates.mjs','web/toast.mjs','web/app-updates.mjs'])assert.ok(files.includes(file),`发行包缺少 ${file}`);
   assert.ok(files.includes('src/project/profiles.mjs'),'发行包必须包含 Profile 配置解析模块');
   for(const file of ['main-classes','reactor','build-instructions'])assert.ok(files.includes(`src/project/${file}.mjs`),`发行包必须包含 ${file}`);

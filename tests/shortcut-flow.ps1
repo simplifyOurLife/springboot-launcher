@@ -1,10 +1,5 @@
 ﻿# 验证真实 .lnk 参数通过 Windows PowerShell 启动入口；Node 入口仅记录参数，不启动服务。
-param([switch]$ServerCi)
 $ErrorActionPreference='Stop'
-if($ServerCi){
-    if($env:GITHUB_ACTIONS -ne 'true' -or (Get-CimInstance Win32_OperatingSystem).ProductType -eq 1){throw 'ServerCi 仅用于 GitHub Actions 的 Windows Server 环境'}
-    Write-Host '服务器 CI：验证原生 ICO、缓存与入口执行；不验证交互桌面的 .lnk 合成图标外观。Windows 11 默认模式仍完整验证。'
-}
 $repositoryRoot=Split-Path -Parent $PSScriptRoot
 $testParent=Join-Path $repositoryRoot '.superpowers/tmp'
 $testRoot=Join-Path $testParent ('shortcut-test-'+[guid]::NewGuid().ToString('N'))
@@ -67,13 +62,13 @@ try {
         $link=Join-Path $testRoot ($kind+'.lnk')
         # 复现后台 sourceRoot 的尾随反斜杠，并覆盖中文、空格、逗号与 &。
         [void](New-LauncherShortcut ($fixture+'\') $link (Join-Path $testRoot '中文, icon cache'))
-        $shortcut=(New-Object -ComObject WScript.Shell).CreateShortcut($link)
+        $shortcut=[SpringBootLauncher.ShortcutShell]::Read($link)
         Assert-Shortcut ($shortcut.IconLocation -like '*springboot-launcher*.ico*') '快捷方式没有使用产品图标'
         Assert-Shortcut ($shortcut.IconLocation -match ',0$' -and -not $shortcut.IconLocation.Contains('"')) '图标路径或资源索引不正确'
         $cachedIcon=$shortcut.IconLocation -replace ',0$',''
         Assert-Shortcut ((Get-FileHash -LiteralPath $cachedIcon -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $fixture 'assets/springboot-launcher.ico') -Algorithm SHA256).Hash) '图标缓存与源文件不一致'
         Assert-IconFile $cachedIcon
-        if(-not $ServerCi){Assert-ShellIcon $link}
+        Assert-ShellIcon $link
         $resultFile=Join-Path $testRoot ($kind+'-result.json')
         $processInfo=New-Object Diagnostics.ProcessStartInfo
         $processInfo.FileName=$shortcut.TargetPath;$processInfo.Arguments=$shortcut.Arguments;$processInfo.WorkingDirectory=$shortcut.WorkingDirectory

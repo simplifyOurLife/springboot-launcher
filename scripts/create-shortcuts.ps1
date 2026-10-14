@@ -18,27 +18,15 @@ function New-LauncherShortcut([string]$Root, [string]$ShortcutPath, [string]$Ico
     if (-not (Test-Path -LiteralPath $cachedIcon) -or (Get-FileHash -LiteralPath $cachedIcon -Algorithm SHA256).Hash -ne $fullIconHash) {
         Copy-Item -LiteralPath $icon -Destination $cachedIcon -Force
     }
-    $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($ShortcutPath)
-    $shortcut.TargetPath = Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
-    # 入口按自身位置识别根目录；不传末尾可能带反斜杠的 Root，避免 Windows 吞掉结束引号。
-    $shortcut.Arguments = '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $helper + '"'
-    $shortcut.WorkingDirectory = $Root
-    $shortcut.Description = '打开 Spring Boot 服务管理与日志面板'
-    # IconLocation 是属性而非命令行；路径内不加引号，逗号后的 0 为图标索引。
-    $shortcut.IconLocation = $cachedIcon + ',0'
-    $shortcut.Save()
     if (-not ('SpringBootLauncher.ShortcutShell' -as [type])) {
-        Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-namespace SpringBootLauncher {
-  public static class ShortcutShell {
-    [DllImport("shell32.dll", CharSet=CharSet.Unicode, ExactSpelling=true)]
-    public static extern void SHChangeNotify(int eventId, uint flags, string path, IntPtr other);
-  }
-}
-'@
+        Add-Type -Path (Join-Path $PSScriptRoot 'windows-shortcut.cs')
     }
+    $target = Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
+    # 入口按自身位置识别根目录；不传末尾可能带反斜杠的 Root，避免 Windows 吞掉结束引号。
+    $arguments = '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $helper + '"'
+    # 使用 IShellLinkW 明确保存 Unicode；WScript 在部分系统代码页会把中文图标路径写成问号。
+    # 路径与图标索引分开传入，写完立即重新读取，避免创建成功却无法显示或打开。
+    [SpringBootLauncher.ShortcutShell]::Create($ShortcutPath,$target,$arguments,$Root,$cachedIcon)
     # 只通知当前快捷方式更新，不清空系统图标缓存，也不重启资源管理器。
     [SpringBootLauncher.ShortcutShell]::SHChangeNotify(0x2000,0x2005,$ShortcutPath,[IntPtr]::Zero)
     return $ShortcutPath

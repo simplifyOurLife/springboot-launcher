@@ -18,6 +18,8 @@
 
 入口图标会保存在当前用户应用数据目录，重新创建时自动使用当前版本并通知 Windows 更新显示。
 
+中文目录通过 [Windows Unicode 快捷方式接口](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ishelllinkw) 保存并重新校验，不依赖系统是否开启 UTF-8 代码页。
+
 直接收藏自动端口地址无法长期保证会话有效，应收藏桌面入口或每次使用打开命令生成新会话。
 
 ## 升级规则
