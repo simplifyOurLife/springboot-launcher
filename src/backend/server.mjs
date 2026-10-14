@@ -11,7 +11,8 @@ import {createEventStream} from './events.mjs';
 import {createWorkspaceStore} from './workspace.mjs';
 import {pickProjectDirectory} from './folder-picker.mjs';
 import {scanJdks as defaultScanJdks} from '../project/jdk.mjs';
-export async function startBackend({manager,auth,instanceId,webDir=fileURLToPath(new URL('../../web/',import.meta.url)),onShutdown=async()=>{},discover=discoverProjects,inspect=inspectProject,scanJdks=defaultScanJdks,workspace=createWorkspaceStore(),pickDirectory=pickProjectDirectory}){
+import {createAppUpdates} from '../runtime/updates.mjs';
+export async function startBackend({manager,auth,instanceId,webDir=fileURLToPath(new URL('../../web/',import.meta.url)),onShutdown=async()=>{},discover=discoverProjects,inspect=inspectProject,scanJdks=defaultScanJdks,workspace=createWorkspaceStore(),pickDirectory=pickProjectDirectory,appUpdates=createAppUpdates()}){
   let origin,closed=false,pickerPending=false;const streams=new Set();
   // 升级后校正旧版误导入的基础模块；检查失败及仍被托管的服务必须保留。
   const protectedKeys=new Set((await manager.list()).filter(item=>['starting','running','stopping','orphaned'].includes(item.status)).map(item=>item.projectKey));
@@ -22,7 +23,7 @@ export async function startBackend({manager,auth,instanceId,webDir=fileURLToPath
   }
   if(removeKeys.length)await workspace.importProjects([],null,{removeKeys});
   // 页面与后台必须属于同一次启动，避免更新源码后旧接口接收到新参数。
-  const staticFiles={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.mjs':'app.mjs','/state.mjs':'state.mjs','/presentation.mjs':'presentation.mjs','/i18n.mjs':'i18n.mjs','/messages.mjs':'messages.mjs','/sidebar-resize.mjs':'sidebar-resize.mjs','/select-field.mjs':'select-field.mjs'};
+  const staticFiles={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.mjs':'app.mjs','/state.mjs':'state.mjs','/presentation.mjs':'presentation.mjs','/i18n.mjs':'i18n.mjs','/messages.mjs':'messages.mjs','/sidebar-resize.mjs':'sidebar-resize.mjs','/select-field.mjs':'select-field.mjs','/toast.mjs':'toast.mjs','/app-updates.mjs':'app-updates.mjs'};
   const staticContent=new Map(await Promise.all([...new Set(Object.values(staticFiles))].map(async filename=>[filename,await readFile(path.join(webDir,filename)).catch(()=>null)])));
   const dashboard=()=>({url:`${origin}/#ticket=${auth.issueTicket()}`});
   const publishWorkspace=data=>{for(const stream of streams)stream.send('workspace',data);return data;};
@@ -45,6 +46,19 @@ export async function startBackend({manager,auth,instanceId,webDir=fileURLToPath
       const identity=auth.authenticate(req);if(!identity)fail('UNAUTHORIZED','需要有效的本机凭据或面板会话');
       if(identity==='session'&&req.headers.origin!==origin&&req.headers['sec-fetch-site']!=='same-origin')fail('FORBIDDEN','面板操作需要同源请求');
       if(route==='/api/health'&&req.method==='GET'){json(res,200,ok({instanceId}));return;}
+      if(route==='/api/app/info'&&req.method==='GET'){json(res,200,ok(await appUpdates.info()));return;}
+      if(route==='/api/app/check-update'&&req.method==='POST'){
+        const body=await readJson(req);if(Object.keys(body).some(key=>key!=='force')||body.force!==undefined&&typeof body.force!=='boolean')fail('INVALID_ARGUMENT','更新检查参数无效');
+        json(res,200,ok(await appUpdates.check(body)));return;
+      }
+      if(route==='/api/app/open-installer'&&req.method==='POST'){
+        const body=await readJson(req);if(Object.keys(body).length)fail('INVALID_ARGUMENT','安装向导不接受自定义参数');
+        json(res,200,ok(await appUpdates.openInstaller()));return;
+      }
+      if(route==='/api/app/create-shortcut'&&req.method==='POST'){
+        const body=await readJson(req);if(Object.keys(body).length)fail('INVALID_ARGUMENT','桌面入口不接受自定义参数');
+        json(res,200,ok(await appUpdates.createShortcut()));return;
+      }
       if(route==='/api/ticket'&&req.method==='POST'){if(identity!=='bearer')fail('FORBIDDEN','访问票据只能由本地客户端申请');await readJson(req);json(res,200,ok(dashboard()));return;}
       if(route==='/api/workspace'&&req.method==='GET'){json(res,200,ok(workspace.snapshot()));return;}
       if(route==='/api/workspace/command'&&req.method==='POST'){
@@ -60,10 +74,10 @@ export async function startBackend({manager,auth,instanceId,webDir=fileURLToPath
         }
         if(command.type==='project.move'&&(!Object.hasOwn(command,'folderId')||(command.folderId!==null&&typeof command.folderId!=='string')))fail('INVALID_ARGUMENT','目标文件夹参数无效');
         if(command.type==='project.move'&&!workspace.snapshot().projects.some(project=>project.projectKey===command.projectKey)){
-          if(Object.keys(command).some(key=>!['type','projectKey','folderId'].includes(key)))fail('INVALID_ARGUMENT','工作区操作参数无效');
+          if(Object.keys(command).some(key=>!['type','projectKey','folderId','beforeProjectKey'].includes(key)))fail('INVALID_ARGUMENT','工作区操作参数无效');
           const service=(await manager.list()).find(item=>item.projectKey===command.projectKey);
           if(!service)fail('INVALID_ARGUMENT','项目不存在，请刷新工作区');
-          data=await workspace.importProjects([service],command.folderId);
+          data=await workspace.command(command,{projectInfo:service});
         }else data=await workspace.command(command);
         json(res,200,ok(publishWorkspace(data)));return;
       }

@@ -23,7 +23,9 @@
 | 发行包白名单与敏感文件排除 | tests/package.test.mjs | npm pack dry-run，不公开发布 |
 | 整版审阅边界回归 | tests/regressions.test.mjs | 旧锁交错、跨后台遗留保护、日志重连/订阅/容量、健康 URL、Profile、多模块顺序 |
 
-Windows 工作流已配置，但云端尚未执行，也未设置分支强制检查。真实 Maven 项目布局、Java 启停、目标机 ACL、实际 Codex／CC 交叉使用，按验收步骤由使用者验证。
+Windows CI 已有实际运行记录；1.0.0 必须在同一提交验证成功后再发布，结果见[发布验证](../docs/verification/release-1.0.0.md)。尚未设置分支强制检查。真实 Maven 项目布局、目标机 ACL、实际 Codex／CC 交叉使用，按验收步骤由使用者验证。
+
+1.0.0 新增覆盖包括 tests/service-recovery.test.mjs（已退出记录、系统运行时长回退、校时保护与未知进程）、tests/updates.test.mjs 与 tests/update-api.test.mjs（来源、缓存及认证边界）、tests/installer-flow.ps1（隔离安装升级与同盘准备）和 tests/shortcut-flow.ps1（实际 Shell 图标与入口）。
 
 本轮服务行、拖拽、彩色日志与认证引导的实际浏览器验证见[服务管理验证](../docs/verification/panel-service-rows-2026-10-10.md)。
 

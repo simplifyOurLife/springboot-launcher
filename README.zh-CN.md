@@ -6,15 +6,23 @@
 
 在 Codex 或 Claude Code 中操作本地 Spring Boot 服务，在同一网页面板实时查看日志，无需为启停服务打开 IDEA。
 
-当前版本为 **0.1.0，首个基础版本**，面向 Windows 本机 Maven Spring Boot 开发。共享后台、八个 MCP 工具和中英文面板已经实现；完整真实工程与双客户端交叉使用仍待验收。查看[基础版本发布说明](docs/releases/0.1.0.md)和[简短验收表](docs/verification/alpha-acceptance.md)。源码仓库：[simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher)。未发布 npm 包。
+当前版本为 **1.0.0**，新增独立打开面板、目录选择安装向导和正式版本更新。查看[本版发布说明](docs/releases/1.0.0.md)和[简短验收表](docs/verification/alpha-acceptance.md)。源码仓库：[simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher)。未发布 npm 包。
 
-![当前版本：服务分组、Profile 与彩色实时日志](docs/assets/panel-current-workbench.jpg)
+## 推荐安装与独立使用
 
-截图来自当前版本页面，使用隔离模拟项目与 Node 演示日志，不含真实业务数据，也不代表真实 Spring Boot 验收。展示新版品牌图标、服务分组、Profile、启停按钮和 ANSI 彩色日志。
+从[官网下载安装引导](https://simplifyOurLife.github.io/springboot-launcher/install.cmd)后双击，选择安装目录，按需勾选桌面／开始菜单入口与 Codex／Claude Code 接入，不必手动替换路径。安装器需要已发布的正式 Release 及 Windows 安装包；首次发布前可先使用下文源码安装。未发现兼容 Node.js 时会下载并校验官方便携环境，不需要管理员权限或 Git。
+
+安装后双击桌面或开始菜单的 **Spring Boot Launcher**，即可独立打开服务管理面板。源码用户也可直接双击根目录 **Open Dashboard.cmd**，或者在面板左上角版本窗口中创建桌面快捷方式。
+
+左上角版本入口可以检查更新并打开升级向导。升级按版本目录切换，项目分组和日志保留；活跃服务默认阻止升级，只有在向导中明确勾选时才停止。源码工作树不会被覆盖。详见[安装与升级说明](docs/usage/installation.md)。
+
+![1.0.0：服务分组、Profile 与彩色实时日志](docs/assets/panel-v1.0.0-workbench.jpg)
+
+截图来自当前 1.0.0 页面，使用隔离模拟项目和演示日志，不含真实业务数据，也不代表真实 Spring Boot 验收。展示版本入口、服务分组、Profile、启停按钮和 ANSI 彩色日志。
 
 项目栏与服务信息可以分别收起，日志几乎占满整个工作区，顶部仍保留当前服务名称和展开入口。
 
-![当前版本：收起项目栏和服务信息后的日志视图](docs/assets/panel-current-log-focus.jpg)
+![1.0.0：收起项目栏和服务信息后的日志视图](docs/assets/panel-v1.0.0-log-focus.jpg)
 
 Profile、JDK 结果见[运行环境验证](docs/verification/panel-runtime-options-2026-10-10.md)，后续修复见[验证补充](docs/verification/alpha-followups.md)。
 
@@ -78,7 +86,7 @@ node .\bin\springboot-launcher.mjs daemon stop
 node .\bin\springboot-launcher.mjs daemon stop --stop-services
 ```
 
-Windows 停止操作不保证执行 JVM 优雅关闭钩子。后台异常后的遗留进程需要人工处理，不会自动接管。启动器以当前用户权限运行可信应用，不提供应用沙箱。
+Windows 停止操作不保证执行 JVM 优雅关闭钩子。关机后重新打开时，后台会自动清理已退出或能确认系统已重启的运行记录，服务恢复为可手动启动的停止状态；项目分组和日志保留，不会自动启动服务。仅仍存活或无法核实的遗留进程需要人工确认，不会自动接管或终止。启动器以当前用户权限运行可信应用，不提供应用沙箱。
 
 端口留空时采用应用配置，面板不猜测实际端口；显式填写时执行覆盖和冲突预检查。极少数后台交接中断需按故障排查人工处理，不能通过删锁强行启动第二后台。
 

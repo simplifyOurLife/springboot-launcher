@@ -37,19 +37,20 @@
     <div class="topbar-brand">
       <button id="toggle-sidebar" class="icon-button mobile-menu" type="button" aria-label="展开项目列表" aria-controls="sidebar" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#icon-list"></use></svg></button>
       <a class="brand" href="/" aria-label="Spring Boot 启动器首页"><span class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M26 5C12 3 5 9 6 18c1 7 9 10 15 5 5-4 5-11 5-18Z" fill="#fff"/><path d="M8 25c4-8 9-12 15-16" fill="none" stroke="#6db33f" stroke-width="2" stroke-linecap="round"/><path d="M15 8v6m-3-4a5 5 0 1 0 6 0" fill="none" stroke="#3f7f28" stroke-width="1.7" stroke-linecap="round"/></svg></span><span>Spring Boot <strong>启动器</strong></span></a>
+      <button id="app-version" class="app-version" type="button" title="版本与更新" aria-label="版本与更新"><span id="app-version-text">版本</span><span id="app-update-badge" hidden>有更新</span></button>
       <span class="workspace-label">本地工作区</span>
     </div>
     <label class="language-picker"><span class="sr-only">界面语言</span><select id="language" aria-label="界面语言"><option value="zh-CN">简体中文</option><option value="en">English</option></select></label>
     <span id="connection" class="connection" role="status"><i></i><span id="connection-label">正在连接后台</span></span>
   </header>
-  <div id="notice" class="notice" role="status" hidden>
+  <div id="notice" class="notice" role="status" aria-live="polite" hidden>
     <span id="notice-text"></span>
     <button id="dismiss-notice" class="icon-button" type="button" aria-label="关闭提示"><svg class="icon" aria-hidden="true"><use href="#icon-x"></use></svg></button>
   </div>
   <div id="import-status" class="import-status" role="status" aria-live="polite" hidden><div class="import-progress-card"><span class="loading-spinner" aria-hidden="true"></span><div><strong>正在导入项目</strong><p id="import-status-text">正在打开系统目录窗口，请选择项目目录…</p><small>选择目录后会自动扫描应用模块，请稍候。</small></div></div></div>
   <div class="workspace">
     <aside id="sidebar" class="sidebar" aria-label="项目管理">
-      <div class="sidebar-heading"><div><h2>项目</h2><span id="project-count" class="count">0</span></div><div class="sidebar-actions"><button id="refresh" class="icon-button" title="刷新共享状态" aria-label="刷新共享状态" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-arrow-clockwise"></use></svg></button><button id="create-folder" class="icon-button" title="新建文件夹" aria-label="新建文件夹" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-folder-simple"></use></svg></button><button id="import-project" class="icon-button import-plus" title="从电脑导入项目" aria-label="从电脑导入项目" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg></button></div></div>
+      <div class="sidebar-heading"><div><h2>项目</h2><span id="project-count" class="count">0</span></div><div class="sidebar-actions"><button id="refresh" class="icon-button" title="从本机后台同步项目列表与服务状态，不会重启服务或重新扫描项目" aria-label="同步服务状态" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-arrow-clockwise"></use></svg></button><button id="create-folder" class="icon-button" title="新建文件夹" aria-label="新建文件夹" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-folder-simple"></use></svg></button><button id="import-project" class="icon-button import-plus" title="从电脑导入项目" aria-label="从电脑导入项目" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg></button></div></div>
       <label class="project-search"><svg class="icon" aria-hidden="true"><use href="#icon-magnifying-glass"></use></svg><input id="project-search" type="search" placeholder="查找项目" aria-label="查找项目" autocomplete="off"></label>
       <form id="folder-form" class="folder-form" hidden><label id="folder-form-label" for="folder-name">新建文件夹</label><input id="folder-name" maxlength="48" placeholder="例如：订单服务" autocomplete="off" required aria-describedby="folder-error"><p id="folder-error" class="field-error" role="alert" hidden></p><div class="form-actions"><button id="folder-save" class="button small" type="submit">创建</button><button id="folder-cancel" class="button small secondary" type="button">取消</button></div></form>
       <p id="sidebar-error" class="field-error sidebar-error" role="alert" hidden></p>
@@ -90,13 +91,13 @@
             <label>运行模式<select id="mode"><option value="auto">自动选择</option><option value="jar">可执行 jar</option><option value="classpath">classes / classpath</option></select></label><label>运行 JDK<select id="jdk"><option value="">自动识别本机 JDK</option></select><small id="jdk-hint">正在扫描本机安装目录…</small></label>
             <label id="jdk-manual-field" class="wide" hidden>自定义 JDK 目录<input id="jdk-manual" placeholder="例如 C:\Program Files\Java\jdk-17" autocomplete="off"></label>
             <div class="runtime-options wide"><span id="runtime-warning" role="status" hidden></span><button id="refresh-runtime" class="button small secondary" type="button">重新识别 Profile / JDK</button></div>
-            <details class="advanced-config wide"><summary>更多启动参数<span>jar / classpath / JVM / 健康检查</span></summary><div class="config-grid advanced-grid">
+            <details class="advanced-config wide"><summary><span class="advanced-heading"><strong>更多启动参数</strong><span>jar / classpath / JVM / 健康检查</span></span><svg class="icon chevron" aria-hidden="true"><use href="#icon-caret-down"></use></svg></summary><div class="config-grid advanced-grid">
             <label class="wide">jar 文件<input id="jar" placeholder="多个 jar 时明确指定（可选）" autocomplete="off"></label><label class="wide">入口类<input id="main-class" placeholder="例如 com.example.DemoApplication（可选）" autocomplete="off"></label>
             <label class="wide">完整 classpath<textarea id="classpath" rows="2" placeholder="每行一个目录或 jar（可选）"></textarea></label><label class="wide">JVM 选项<textarea id="jvm" rows="2" placeholder="每行一个选项，例如 -Xmx512m（可选）"></textarea></label>
             <label class="wide">健康检查地址<input id="health-url" placeholder="例如 http://127.0.0.1:8087/actuator/health（可选）" autocomplete="off"></label>
             </div></details>
           </div>
-          <p class="config-note">设置用于下一次启动；重启沿用上次启动配置。修改设置后，请停止再启动。缺少或过期产物时，启动器会自动准备编译及运行依赖。</p>
+          <div class="config-note"><p>设置用于下一次启动；重启沿用上次启动配置。</p><p>修改设置后，请停止再启动。缺少或过期产物时，启动器会自动准备编译及运行依赖。</p></div>
         </details>
         <section id="log-panel" class="log-panel" aria-label="实时日志">
           <div class="log-toolbar">
@@ -104,13 +105,27 @@
             <div class="log-controls"><button id="collapse-projects" class="log-button" type="button" aria-controls="sidebar" aria-expanded="true">收起项目栏</button><button id="collapse-details" class="log-button" type="button" aria-expanded="true">收起服务信息</button><button id="pause" class="log-button" type="button" aria-pressed="false"><svg class="icon" aria-hidden="true"><use id="pause-icon" href="#icon-pause"></use></svg><span id="pause-label">暂停</span></button><button id="copy" class="log-button" type="button" title="复制当前显示的日志"><svg class="icon" aria-hidden="true"><use id="copy-icon" href="#icon-copy"></use></svg><span>复制</span></button><span class="toolbar-divider"></span><button id="expand-logs" class="log-button icon-only" type="button" title="展开日志专注视图" aria-label="展开日志专注视图" aria-pressed="false"><svg class="icon" aria-hidden="true"><use id="expand-icon" href="#icon-arrows-out-simple"></use></svg></button></div>
           </div>
           <div class="log-filterbar"><label class="log-search"><svg class="icon" aria-hidden="true"><use href="#icon-magnifying-glass"></use></svg><input id="search" type="search" placeholder="检索日志关键词" aria-label="检索日志关键词" autocomplete="off"><kbd>/</kbd></label><div class="search-navigation"><span id="search-count" role="status"></span><button id="search-prev" class="log-button icon-only" type="button" title="上一处（Shift+Enter）" aria-label="上一处匹配" disabled><svg class="icon search-up" aria-hidden="true"><use href="#icon-caret-down"></use></svg></button><button id="search-next" class="log-button icon-only" type="button" title="下一处（Enter）" aria-label="下一处匹配" disabled><svg class="icon" aria-hidden="true"><use href="#icon-caret-down"></use></svg></button><button id="search-close" class="log-button icon-only" type="button" title="退出检索（Esc）" aria-label="退出日志检索" disabled><svg class="icon" aria-hidden="true"><use href="#icon-x"></use></svg></button></div><div class="log-options"><label><input id="wrap" type="checkbox" checked>自动换行</label><label><input id="follow" type="checkbox" checked>跟随输出</label></div></div>
-          <div id="search-status" class="log-search-status" role="status" hidden>检索中：已停止自动滚动，后台继续接收日志。</div>
-          <div id="log-gap" class="log-warning dismissible-warning" role="status" hidden><span>部分较早日志已省略，当前缓冲中可能存在缺口。</span><button id="dismiss-log-gap" class="log-button icon-only" type="button" title="关闭提示" aria-label="关闭提示"><svg class="icon" aria-hidden="true"><use href="#icon-x"></use></svg></button></div><div id="log-warning" class="log-warning" role="status" hidden></div><div id="log-limit" class="log-limit" role="status" hidden></div>
+          <div id="search-status" class="log-search-status dismissible-warning" role="status" hidden><span>检索中：已停止自动滚动，后台继续接收日志。</span><button class="log-button icon-only" type="button" title="关闭提示" aria-label="关闭提示" data-dismiss-log-hint="search"><svg class="icon" aria-hidden="true"><use href="#icon-x"></use></svg></button></div>
+          <div id="log-gap" class="log-warning dismissible-warning" role="status" hidden><span>部分较早日志已省略，当前缓冲中可能存在缺口。</span><button id="dismiss-log-gap" class="log-button icon-only" type="button" title="关闭提示" aria-label="关闭提示"><svg class="icon" aria-hidden="true"><use href="#icon-x"></use></svg></button></div><div id="log-warning" class="log-warning dismissible-warning" role="status" hidden><span id="log-warning-text"></span><button class="log-button icon-only" type="button" title="关闭提示" aria-label="关闭提示" data-dismiss-log-hint="persistence"><svg class="icon" aria-hidden="true"><use href="#icon-x"></use></svg></button></div><div id="log-limit" class="log-limit dismissible-warning" role="status" hidden><span id="log-limit-text"></span><button class="log-button icon-only" type="button" title="关闭提示" aria-label="关闭提示" data-dismiss-log-hint="limit"><svg class="icon" aria-hidden="true"><use href="#icon-x"></use></svg></button></div>
           <div class="log-viewport"><div id="logs" class="log-output" tabindex="0" role="region" aria-label="服务日志文本"></div><button id="jump-bottom" class="jump-bottom" type="button" hidden><svg class="icon" aria-hidden="true"><use href="#icon-arrow-down"></use></svg>回到最新输出</button></div>
           <div class="log-footer"><span class="stream-info"><i id="stream-dot"></i><span id="stream-status">正在连接日志</span><span class="log-source">stdout / stderr</span></span><span id="log-size">0.0 / 512 KiB</span></div>
         </section>
       </section>
     </main>
   </div>
+  <dialog id="app-update-dialog" class="confirm-dialog update-dialog" aria-labelledby="update-dialog-title">
+    <div class="dialog-heading"><span class="dialog-mark update-mark"><svg class="icon" aria-hidden="true"><use href="#icon-arrow-clockwise"></use></svg></span><div><h2 id="update-dialog-title">版本与更新</h2><p>Spring Boot Launcher</p></div></div>
+    <dl class="update-versions"><div><dt>当前版本</dt><dd id="installed-version"></dd></div><div><dt>最新版本</dt><dd id="latest-version"></dd></div></dl>
+    <p id="update-status" role="status"></p><pre id="update-notes" hidden></pre><p id="update-mode"></p>
+    <button id="app-shortcut" class="button secondary" type="button">创建桌面快捷方式</button>
+    <div class="dialog-actions"><button id="close-app-update" class="button secondary" type="button" autofocus>关闭</button><button id="check-app-update" class="button secondary" type="button">检查更新</button><button id="open-app-installer" class="button" type="button">打开安装向导</button></div>
+  </dialog>
+  <dialog id="remove-project-dialog" class="confirm-dialog" aria-labelledby="remove-dialog-title" aria-describedby="remove-dialog-description">
+    <div class="dialog-heading"><span class="dialog-mark"><svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg></span><div><h2 id="remove-dialog-title">移除服务</h2><p>仅从启动器列表移除</p></div></div>
+    <div class="dialog-project"><svg class="icon" aria-hidden="true"><use href="#icon-spring-boot"></use></svg><strong id="remove-dialog-name"></strong></div>
+    <p id="remove-dialog-description">磁盘项目和日志文件不会删除，以后可重新导入。</p>
+    <p id="remove-dialog-error" class="field-error" role="alert" hidden></p>
+    <div class="dialog-actions"><button id="remove-dialog-cancel" class="button secondary" type="button" autofocus>取消</button><button id="remove-dialog-confirm" class="button danger" type="button">确认移除</button></div>
+  </dialog>
 </body>
 </html>

@@ -6,7 +6,7 @@
 
 Manage local Spring Boot services from Codex, Claude Code, or a shared web dashboard. Start and stop services, organize projects, and follow their logs without opening an IDE.
 
-**Version 0.1.0 — first foundational release.** The current target is local Maven Spring Boot development on Windows. Full real-project and cross-client acceptance is still pending; see the [release notes](docs/releases/0.1.0.md) and [acceptance checklist](docs/verification/alpha-acceptance.md), currently in Chinese. Source: [simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher). No npm package has been published.
+**Version 1.0.0.** Windows installation, independent dashboard access, and stable-release updates are now implemented. See the [release notes](docs/releases/1.0.0.md) and [acceptance checklist](docs/verification/alpha-acceptance.md), currently in Chinese. Source: [simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher). No npm package has been published.
 
 ## What is this project?
 
@@ -14,13 +14,19 @@ This is a **local service management tool with an MCP server interface, a CLI, a
 
 The backend starts on demand. You do not need to start a separate Node server in a terminal before using the dashboard or MCP tools. Closing a chat does not stop managed services.
 
-![English dashboard with profiles and colored live logs](docs/assets/panel-current-workbench-en.jpg)
+![Version 1.0.0 dashboard with profiles and colored live logs](docs/assets/panel-v1.0.0-workbench-en.jpg)
 
-Screenshots show isolated sample projects and Node-generated demo output, not business data or proof of real Spring Boot acceptance. The focused view below shows the Chinese interface. The dashboard supports English and Simplified Chinese, with a language selector in the top bar. It follows the browser language on first use and remembers an explicit selection for the current dashboard origin. A new backend port uses a separate browser storage scope.
+Screenshots show the 1.0.0 interface with isolated sample projects and simulated output, not business data or proof of real Spring Boot acceptance. Both screenshots use English. The dashboard supports English and Simplified Chinese, with a language selector in the top bar. It follows the browser language on first use and remembers an explicit selection for the current dashboard origin. A new backend port uses a separate browser storage scope.
 
-![Log-focused view with project and service sections collapsed](docs/assets/panel-current-log-focus.jpg)
+![Version 1.0.0 log-focused view with project and service sections collapsed](docs/assets/panel-v1.0.0-log-focus-en.jpg)
 
 ## Requirements and installation
+
+For guided Windows installation, [download the online installer](https://simplifyOurLife.github.io/springboot-launcher/install.cmd), then open it. Select the installation folder and choose desktop/Start menu shortcuts and optional Codex/Claude Code integration. Paths are configured automatically. The guide needs a stable GitHub Release with the Windows ZIP and checksums; until the first release is published, use source installation below. If no compatible Node.js is found, it downloads a verified portable runtime from nodejs.org.
+
+After installation, double-click **Spring Boot Launcher** on the desktop or in the Start menu to open the authenticated local dashboard. For a source checkout, double-click **Open Dashboard.cmd** in the repository root. Neither action requires an AI chat. The version button in the top bar can create a desktop shortcut for the current checkout.
+
+The version button also checks for stable releases and opens the install/upgrade guide. Managed installs keep a stable MCP path while switching version directories. Running services block an upgrade unless you explicitly select stopping them in the guide. Source checkouts are preserved. See [installation and updates](docs/usage/installation.md) for details.
 
 - Windows 11 and PowerShell 7.
 - Node.js 22.22.2 or a newer compatible version.
@@ -61,7 +67,7 @@ Claude Code:
 claude mcp add --transport stdio springboot-launcher -- node "D:\tools\springboot-launcher\bin\springboot-launcher.mjs" mcp
 ```
 
-Reopen the client and check its MCP connection. These commands are for you to run; installation does not modify your existing client configuration. Both clients share services when using the same Windows user and backend directory. If you set `SPRINGBOOT_LAUNCHER_HOME`, use the same absolute directory in both clients.
+Reopen the client and check its MCP connection. These commands are the manual alternative; the installation guide configures only the clients you select. Both clients share services when using the same Windows user and backend directory. If you set `SPRINGBOOT_LAUNCHER_HOME`, use the same absolute directory in both clients.
 
 Available tools:
 
@@ -112,7 +118,7 @@ node .\bin\springboot-launcher.mjs daemon stop --stop-services
 
 Before upgrading, stop managed services and exit the backend, update source and dependencies, then run `dashboard` again. The backend does not hot-reload source changes; refreshing an old port does not load a new backend version.
 
-The launcher runs trusted applications with your current user permissions; it is not an application sandbox. It only stops its own managed processes. After a backend crash, orphaned processes require manual review and are not automatically adopted or killed by historical PID.
+The launcher runs trusted applications with your current user permissions; it is not an application sandbox. It only stops its own managed processes. On reopening, records for exited processes or a confirmed system restart are cleared automatically, leaving services stopped and preserving projects and logs. Services are not started automatically. Live or unverifiable orphaned processes still require manual review and are not adopted or killed by historical PID.
 
 Gradle, non-Windows platforms, remote management, and a dedicated embedded client sidebar are outside the current acceptance scope. Real Java/Maven execution, complex projects, cross-client operation, and cloud CI still require complete acceptance records.
 

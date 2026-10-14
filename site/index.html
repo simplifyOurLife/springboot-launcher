@@ -9,7 +9,7 @@
   <meta property="og:description" content="Your services. One workspace. A local Spring Boot service manager for Codex, Claude Code, and your browser.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://simplifyOurLife.github.io/springboot-launcher/">
-  <meta property="og:image" content="https://simplifyOurLife.github.io/springboot-launcher/assets/workbench-en.jpg">
+  <meta property="og:image" content="https://simplifyOurLife.github.io/springboot-launcher/assets/workbench-en.jpg?v=1.0.0">
   <link rel="canonical" href="https://simplifyOurLife.github.io/springboot-launcher/">
   <link rel="icon" type="image/svg+xml" href="./assets/mark.svg">
   <link rel="stylesheet" href="./styles.css">
@@ -46,8 +46,8 @@
 
     <section class="product wrap" id="overview" aria-label="Product preview" data-i18n-aria="productPreview">
       <div class="preview-heading"><span class="preview-label" data-i18n="previewLabel">A place for every service. Room for every log.</span><div class="preview-switch" role="group" aria-label="Preview mode" data-i18n-aria="previewMode"><button type="button" data-preview="workbench" aria-pressed="true" data-i18n="workbench">Workspace</button><button type="button" data-preview="focus" aria-pressed="false" data-i18n="focus">Log focus</button></div></div>
-      <div class="preview-surface"><img id="preview-image" src="./assets/workbench-en.jpg" width="1280" height="720" alt="Spring Boot Launcher workspace with a project sidebar and colored logs" fetchpriority="high"></div>
-      <p class="caption" data-i18n="previewCaption">Actual interface, isolated demo project and simulated logs. Preview only; your services run in the local application.</p>
+      <div class="preview-surface"><img id="preview-image" src="./assets/workbench-en.jpg?v=1.0.0" width="1280" height="720" alt="Spring Boot Launcher 1.0.0 workspace with a project sidebar and colored logs" fetchpriority="high"></div>
+      <p class="caption" data-i18n="previewCaption">Version 1.0.0 interface, isolated demo projects and simulated logs. Preview only; your services run in the local application.</p>
     </section>
 
     <section class="capabilities wrap" aria-labelledby="capabilities-title">
@@ -73,8 +73,9 @@
     </div></section>
 
     <section class="installation wrap" id="get-started" aria-labelledby="install-title">
-      <div class="install-intro"><h2 id="install-title" data-i18n="installTitle">From source to<br>your first service.</h2><p data-i18n="installDescription">Install once, open the dashboard, then connect your preferred AI client.</p><div class="requirements"><h3 data-i18n="requirementsTitle">Before you start</h3><ul><li>Windows 11 + PowerShell 7 + Git</li><li>Node.js ≥ 22.22.2</li><li data-i18n="requirementJdk">A JDK compatible with your project</li><li data-i18n="requirementMaven">Maven or the project's Maven Wrapper</li></ul></div><a class="text-link" id="readme-link" href="https://github.com/simplifyOurLife/springboot-launcher#requirements-and-installation" data-i18n="installHelp">Full installation guide ↗</a></div>
+      <div class="install-intro"><h2 id="install-title" data-i18n="installTitle">From source to<br>your first service.</h2><p data-i18n="installDescription">Install once, open the dashboard, then connect your preferred AI client.</p><div class="requirements"><h3 data-i18n="requirementsTitle">Before you start</h3><ul><li>Windows 11 (PowerShell included)</li><li data-i18n="requirementNode">Node.js ≥ 22.22.2, installed by the guide if needed</li><li data-i18n="requirementJdk">A JDK compatible with your project</li><li data-i18n="requirementMaven">Maven or the project's Maven Wrapper</li></ul></div><a class="text-link" id="readme-link" href="https://github.com/simplifyOurLife/springboot-launcher#requirements-and-installation" data-i18n="installHelp">Full installation guide ↗</a></div>
       <div class="install-steps">
+        <article class="guided-install"><h3 data-i18n="guidedTitle">Prefer a guided installation?</h3><p data-i18n="guidedText">Download and open the Windows installer. Choose a folder, create desktop shortcuts, and optionally connect Codex or Claude Code.</p><a class="button primary" href="./install.cmd" download="Spring-Boot-Launcher-Install.cmd" data-i18n="guidedDownload">Download installer</a><small data-i18n="guidedNote">Requires an internet connection. The guide can install a portable Node.js runtime if needed.</small></article>
         <article class="install-step"><h3><span>1</span><span data-i18n="step1Title">Install & open</span></h3><p data-i18n="step1Text">Run in PowerShell from the folder where you want to keep the source.</p><div class="code-panel"><div class="code-heading"><span>PowerShell</span><button type="button" class="copy-button" data-copy="install-code" data-i18n="copy">Copy</button></div><pre><code id="install-code">git clone https://github.com/simplifyOurLife/springboot-launcher.git
 cd springboot-launcher
 npm ci --ignore-scripts --no-audit --no-fund

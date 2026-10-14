@@ -10,7 +10,7 @@ LICENSE 沿用参考工程 Apache License 2.0 文本，保留原有 `Copyright [
 
 后续运行兼容性改造研究了同项目 `src/index.js` 的服务入口筛选、薄 jar、assembly、reactor 依赖闭包、资源目录与模式选择策略；采用独立的 ESM 模块和参数数组重新实现。没有移入 DSH 宿主 API、拼接 Shell 的启动代码或删除依赖 jar 的逻辑。具体差异和验证见[兼容性记录](docs/verification/dsh-compatibility-2026-10-10.md)。
 
-后续也参考其启动失败后受限降级及 stopSpringBootCore 的先非强制停止、等待、再强制停止顺序，仍使用本项目的执行器与日志管道实现。离线缓存缺失后自动联网一次是本项目新增策略，不宣称 dsh 已提供；边界见[Alpha 发布说明](docs/releases/0.1.0-alpha.1.md)。
+后续也参考其启动失败后受限降级及 stopSpringBootCore 的先非强制停止、等待、再强制停止顺序，仍使用本项目的执行器与日志管道实现。离线缓存缺失后自动联网一次是本项目新增策略，不宣称 dsh 已提供；边界见[基础版本发布说明](docs/releases/0.1.0.md)。
 
 ## 锁定依赖
 
@@ -41,6 +41,8 @@ LICENSE 沿用参考工程 Apache License 2.0 文本，保留原有 `Copyright [
 公开 Java 示例声明 Spring Boot parent、Web MVC 与 Actuator 4.1.1，Apache-2.0，版本及 starter 依据 [Spring 官方入门文档](https://docs.spring.io/spring-boot/tutorial/first-application/index.html)。本次没有解析或下载示例 Maven 依赖，不将其传递依赖视作已完成许可审计；源码和资源为本项目编写，未带入外部 jar。
 
 界面图由本项目实现的页面在隔离模拟环境截取，不含业务数据。页面使用系统字体，无外部图片或在线字体请求。
+
+`assets/springboot-launcher.svg` 复用本项目页面品牌图形，`assets/springboot-launcher.ico` 是其 Windows 多尺寸导出版本，没有引入新的外部图标来源。
 
 面板内嵌 [Phosphor Icons](https://github.com/phosphor-icons/core) 的 regular SVG 图标，MIT License，Copyright (c) 2023 Phosphor Icons。固定来源修订为 `2b75f3ad12b420c9504ef05df8d2564a28f8500e`，路径数据来自 `assets/regular/`，只改为共享 symbol 引用，未改绘图路径。完整原始许可随源码保留于 [web/licenses/phosphor-icons.txt](web/licenses/phosphor-icons.txt)。
 

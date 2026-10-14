@@ -1,3 +1,4 @@
+import {APP_VERSION} from '../core/version.mjs';
 import {McpServer} from '@modelcontextprotocol/server';
 import {z} from 'zod';
 import {failure} from '../core/errors.mjs';
@@ -13,7 +14,7 @@ const tools={
   spring_boot_dashboard:{title:'打开实时日志面板',description:'返回本机网页面板的 60 秒单次访问链接，在 Codex 浏览器面板或系统浏览器打开。',shape:{}}
 };
 export function createMcpServer({client}){
-  const server=new McpServer({name:'springboot-launcher',version:'0.1.0'},{instructions:'先检查用户指定的可信 Maven Spring Boot 项目。启动可能自动执行该工程的 Maven 编译、插件和依赖准备；只对用户已授权启动的可信项目调用，noBuild:true 可禁止准备，默认离线。Codex、Claude Code 和网页共用当前用户后台，聊天结束不会停止服务。实时日志在网页显示；主动请求日志会把片段送入当前 AI 会话。工具注解不是执行授权。'});
+  const server=new McpServer({name:'springboot-launcher',version:APP_VERSION},{instructions:'先检查用户指定的可信 Maven Spring Boot 项目。启动可能自动执行该工程的 Maven 编译、插件和依赖准备；只对用户已授权启动的可信项目调用，noBuild:true 可禁止准备，默认离线。Codex、Claude Code 和网页共用当前用户后台，聊天结束不会停止服务。实时日志在网页显示；主动请求日志会把片段送入当前 AI 会话。工具注解不是执行授权。'});
   for(const [name,tool]of Object.entries(tools))server.registerTool(name,{title:tool.title,description:tool.description,inputSchema:z.object(tool.shape).strict(),annotations:{readOnlyHint:!!tool.readOnly,destructiveHint:!!tool.destructive,idempotentHint:!!tool.readOnly,openWorldHint:false}},async args=>{
     let result;try{result=await client.invoke(name,args);}catch(error){result=failure(error);}
     return {isError:!result.ok,structuredContent:result,content:[{type:'text',text:JSON.stringify(result)}]};

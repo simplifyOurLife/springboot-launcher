@@ -1,54 +1,29 @@
-# 首个基础版本发布准备清单
+# 1.0.0 发布检查
 
-当前拟以 0.1.0 首个基础版本公开源码；支持范围和待验收项按实际证据说明。自动／模拟验证与真实客户端验收分别记录，未验证项不勾选。早期证据见[验证记录](verification/mvp.md)，后续修复见[验证补充](verification/alpha-followups.md)。
+本版定位为 Windows 本机 Maven Spring Boot 服务管理工具，提供共享 Node 后台、MCP 接口、CLI 和网页面板。1.0.0 不扩展到远程管理、Gradle 或其他操作系统。
 
-材料入口：[基础版本发布说明草稿](releases/0.1.0.md) · [简短真实验收表](verification/alpha-acceptance.md) · [GitHub 发布步骤](maintainers/github-release.md)。
+发布入口：[版本说明](releases/1.0.0.md) · [安装与升级](usage/installation.md) · [本次验证记录](verification/release-1.0.0.md) · [发布步骤](maintainers/github-release.md)。
 
-## 本地实现与自动验证
+## 已准备
 
-- [x] 用户确认设计、计划及当前 main 工作树的执行方式。
-- [x] 共享后台、Maven 产物检查、JDK 选择和托管生命周期已实现。
-- [x] SDK legacy／auto 双代理共享状态、并发单进程、代理退出服务继续。
-- [x] 缺少／过期产物自动托管 Maven 准备、失败和取消保护；noBuild 时拒绝，Java 参数数组与未知参数拒绝。
-- [x] 中文网页模拟服务启停、重启、暂停、搜索、复制、纯文本及窄页面验证。
-- [x] 认证、Host、同源、票据、会话、容量、SSE 重连及慢消费者验证。
-- [x] 陈旧锁交接、异常遗留保护及显式健康检查回归验证。
-- [x] 一次整版独立审阅及严重／重要问题集中修复，52 项测试通过。
-- [x] 后续 dsh 兼容性、导入进度和自动准备模拟回归，结果见[本轮记录](verification/dsh-compatibility-2026-10-10.md)。
-- [x] 受限启动修复、停止尾部日志、独立折叠与旧导入校正的定向检查，范围和不足见[验证补充](verification/alpha-followups.md)。
-- [x] Windows CI 已按现有测试配置，不执行 Java／前端 build；云端仍待运行。
+- [x] package.json、锁文件及 CLI／MCP／面板共用版本统一为 1.0.0。
+- [x] 默认英文 README、中文 README、官网、安装说明、许可证、来源和安全边界同步。
+- [x] 独立面板入口、目录选择安装、桌面图标、稳定 MCP 路径与正式版本更新入口已实现。
+- [x] 安装包白名单排除运行状态、凭据、业务日志、测试及临时文件；npm 使用官方源并按锁文件安装。
+- [x] 独立审阅完成；已修复系统校时误清理保护记录、跨盘安装准备可能留下半成品的问题。
+- [x] 本地定向 Node 验证、Windows PowerShell 5.1／PowerShell 7 隔离安装升级和实际 Shell 快捷方式验证通过。
+- [x] 个人 Git 配置及全部待公开历史的 author／committer 邮箱为 qiyifeng <617060296@qq.com>。
+- [x] 用户已授权：检查具备条件后提交并推送 1.0.0。
 
-## 公开材料
+## 发布顺序
 
-- [x] README、两客户端接入、安全／贡献／行为准则、Issue／PR 模板和变更记录。
-- [x] Apache-2.0、原版权、精确迁移文件、来源修订、哈希及依赖锁文件。
-- [x] 发行白名单，npm pack dry-run 排除运行状态、秘密、测试和构建产物。
-- [x] 公开 Java 示例源码及纯模拟数据截图；示例未自动构建或运行。
-- [x] 干净源码安装、SDK 连接及 CLI 帮助已验证。
-- [x] 公开文件链接、跟踪文件及整个 Git 历史的内部路径／常见密钥模式检查未命中；不能替代全面人工秘密审计。
-- [x] README、CHANGELOG、安全策略和接入说明同步当前的自动准备、停止、折叠与升级行为；发布说明草稿与短验收表已准备。
-- [x] 私密漏洞报告的维护者启用步骤已准备；这不表示云端入口已启用。
-- [ ] 实际 Codex／Claude Code 的配置与交叉操作验收。
-- [ ] 真实 Java 示例或可信业务工程的 JDK、Profile、端口、日志、健康、停止与重启验收。
-- [ ] 真实工程 Maven 自动准备（单模块、嵌套 reactor、离线缓存与首次联网）的用户验收。
-- [ ] 发布前人工复核全部公开内容、依赖许可证与有效的私密漏洞报告入口。
-- [x] 2026-10-12：项目配置与锁文件统一 npm 官方源；临时目录使用独立空缓存执行 npm ci --ignore-scripts --no-audit --no-fund，15 个依赖安装成功，锁定版本和完整性均未改变，未运行构建。
-- [ ] 审阅并提交尚未提交的源码和文档改动，记录要公开的提交 SHA。
+1. 提交已审阅的源码与公开材料，推送 main。
+2. 确认该提交的 [Windows 自动验证](https://github.com/simplifyOurLife/springboot-launcher/actions/workflows/test.yml) 通过；失败时修复，不创建发布标签。
+3. 对同一已验证提交创建 v1.0.0 标签并推送。发行工作流再次检查版本一致及同 SHA 的 CI 成功后发布 ZIP、SHA-256 和安装入口。
+4. 验证 [Release](https://github.com/simplifyOurLife/springboot-launcher/releases/tag/v1.0.0)、[官网](https://simplifyOurLife.github.io/springboot-launcher/)、在线下载及隔离真实安装，记录实际结果；不移动已公开标签。
 
-## GitHub 发布
+## 验收边界
 
-- [ ] 用户确认公开仓库名称、说明、内容、创建／关联远端及推送。
-- [ ] 云端 CI 实际通过并核对许可证识别、README、模板与分支检查。
-- [ ] 在真实可用 MVP 对应提交创建版本标签及发布说明。
+本机服务已由使用者实际体验并反馈修复；自动验证不替代所有项目布局和运行环境验收。复杂 Maven Profile／插件、不同企业代理、无 Node 的全新 Windows 环境和真实 Codex／Claude Code 自动注册及交叉操作仍需分别验证。保留[人工验收表](verification/alpha-acceptance.md)，未执行项不勾选。
 
-尚未创建远端、推送、公开发布或发布 npm 包。公共 npm 包与平台扩展不是首个 GitHub 源码发布的前提。
-
-## 发布信息回填
-
-| 项目 | 状态 |
-| --- | --- |
-| GitHub 仓库与所属账号 | https://github.com/simplifyOurLife/springboot-launcher；simplifyOurLife |
-| 公开提交 SHA、版本标签 | 待确定；材料版本 0.1.0 |
-| Release URL、云端 CI 链接 | 尚未生成 |
-| 私密漏洞报告入口 | 尚未启用并核验 |
-| 真实验收结论 | 待使用者填写验收表 |
+安装器没有代码签名；仓库仍保持 private:true，不发布 npm 公共包。GitHub 私密漏洞报告入口未核验，不宣称已开放。上述支持范围和限制必须随 Release 保留。

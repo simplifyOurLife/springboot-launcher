@@ -42,9 +42,9 @@ export function createWorkspaceStore({initialState = {folders: [], projects: []}
   return {
     snapshot,
     validateFolder: id => validateFolder(state, id),
-    command(command) {
+    command(command, {projectInfo} = {}) {
       if (!command || typeof command !== 'object' || Array.isArray(command)) fail('INVALID_ARGUMENT', '工作区操作无效');
-      const schemas = {'folder.create': ['type', 'name'], 'folder.rename': ['type', 'id', 'name'], 'folder.remove': ['type', 'id'], 'project.move': ['type', 'projectKey', 'folderId'], 'project.remove': ['type', 'projectKey']};
+      const schemas = {'folder.create': ['type', 'name'], 'folder.rename': ['type', 'id', 'name'], 'folder.remove': ['type', 'id'], 'project.move': ['type', 'projectKey', 'folderId', 'beforeProjectKey'], 'project.remove': ['type', 'projectKey']};
       const allowed = Object.hasOwn(schemas, command.type) ? schemas[command.type] : null;
       if (!allowed || Object.keys(command).some(key => !allowed.includes(key))) fail('INVALID_ARGUMENT', '工作区操作参数无效');
       return mutate(next => {
@@ -64,8 +64,26 @@ export function createWorkspaceStore({initialState = {folders: [], projects: []}
         }
         if (command.type === 'project.move') {
           validateFolder(next, command.folderId);
-          const project = next.projects.find(item => item.projectKey === command.projectKey);
+          let project = next.projects.find(item => item.projectKey === command.projectKey);
+          // MCP 直接启动但尚未导入的服务，由后台提供可信记录，与首次移动一起原子保存。
+          if(!project&&projectInfo?.projectKey===command.projectKey){
+            if(typeof projectInfo.dir!=='string'||!path.isAbsolute(projectInfo.dir))fail('INVALID_ARGUMENT','导入项目记录无效');
+            project={projectKey:projectInfo.projectKey,dir:projectInfo.dir,name:path.basename(projectInfo.dir),folderId:command.folderId};
+            next.projects.push(project);
+          }
           if (!project) fail('INVALID_ARGUMENT', '请先导入项目，再调整所在文件夹');
+          // 以目标项目为插入锚点，数组顺序直接持久化，其他分组的相对顺序保持不变。
+          if (Object.hasOwn(command, 'beforeProjectKey')) {
+            const anchor = command.beforeProjectKey;
+            if (anchor !== null && (typeof anchor !== 'string' || !anchor)) fail('INVALID_ARGUMENT', '排序目标参数无效');
+            if (anchor !== null && !next.projects.some(item => item.projectKey === anchor && item.folderId === command.folderId)) fail('INVALID_ARGUMENT', '排序目标不在目标文件夹中，请刷新工作区');
+            if (anchor === project.projectKey) return;
+            next.projects = next.projects.filter(item => item !== project);
+            project.folderId = command.folderId;
+            const index = anchor === null ? next.projects.findLastIndex(item => item.folderId === command.folderId) + 1 : next.projects.findIndex(item => item.projectKey === anchor);
+            next.projects.splice(index, 0, project);
+            return;
+          }
           project.folderId = command.folderId;
         }
       });

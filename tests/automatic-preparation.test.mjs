@@ -11,7 +11,7 @@ import {createServiceManager} from '../src/services/manager.mjs';
 import {createJavaExecutor} from '../src/services/executor.mjs';
 import {createLogStore} from '../src/logs/log-store.mjs';
 
-async function until(fn){const end=Date.now()+5000;while(Date.now()<end){const value=await fn();if(value)return value;await new Promise(resolve=>setTimeout(resolve,15));}assert.fail('等待模拟生命周期超时');}
+async function until(fn,timeoutMs=5000){const end=Date.now()+timeoutMs;while(Date.now()<end){const value=await fn();if(value)return value;await new Promise(resolve=>setTimeout(resolve,15));}assert.fail('等待模拟生命周期超时');}
 async function setup(t,{delay=100,exitCode=0,afterBuild}={}){
   const f=await fixture('missing');let builds=0,launches=0,stoppedTree=false,buildChild;
   const java=createJavaExecutor(),resolve=async()=>({home:f.jdkHome,executable:process.execPath});
@@ -97,7 +97,8 @@ test('Windows 固定 Maven 执行脚本安全传递空格中文参数，停止�
   let output='';child.stdout.on('data',bytes=>{output+=bytes;});
   const closed=new Promise(resolve=>child.once('close',resolve));let stopped=false;
   t.after(async()=>{if(!stopped){await executor.stop(child,{tree:true});await closed;}});
-  await until(()=>output.includes('"child":'));
+  // Windows CI 需依次拉起 PowerShell、CMD 与两个 Node；仅放宽此实际进程链的启动预算。
+  await until(()=>output.includes('"child":'),15000);
   const info=JSON.parse(output.trim());assert.deepEqual(info.args,['-f',path.join(f.dir,'pom.xml'),'-Ddemo=中文 空格']);
   assert.equal(await executor.stop(child,{tree:true}),true);await closed;stopped=true;
   for(const pid of [info.pid,info.child])assert.throws(()=>process.kill(pid,0),{code:'ESRCH'});

@@ -3,6 +3,16 @@ import assert from 'node:assert/strict';
 import {createViewState,reduceEvent} from '../web/state.mjs';
 const event=(seq,text)=>({type:'log',data:{projectKey:'demo',seq,text,time:'2026-10-09',source:'stdout'}});
 
+test('日志说明与告警关闭后跨后续输出和重连保持，新检索及新轮次按范围恢复',()=>{
+  let s=reduceEvent(createViewState(),{type:'log',data:{...event(1,'日志').data,runStartSeq:1}});
+  for(const hint of ['limit','persistence','search'])s=reduceEvent(s,{type:'dismiss-hint',hint});
+  s=reduceEvent(s,{type:'snapshot',data:{runStartSeq:1,events:[{...event(2,'新输出').data,runStartSeq:1}],lastSeq:2}});
+  assert.deepEqual(s.dismissedHints,['limit','persistence','search']);
+  s=reduceEvent(s,{type:'restore-hint',hint:'search'});assert.deepEqual(s.dismissedHints,['limit','persistence']);
+  s=reduceEvent(s,{type:'log',data:{...event(3,'新轮次').data,runStartSeq:3}});
+  assert.deepEqual(s.dismissedHints,[]);
+});
+
 test('日志缺口可手动关闭，本轮后续日志和重连不重复提示，新轮次恢复提示资格',()=>{
   let s=reduceEvent(createViewState(),{type:'log',data:{...event(3,'本轮').data,runStartSeq:1}});
   assert.equal(s.gap,true);

@@ -1,0 +1,59 @@
+name: Windows 发行包
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 校验版本并整理发行文件
+        run: |
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          if ($env:GITHUB_REF_NAME -ne "v$($package.version)") { throw '标签和 package.json 版本不一致' }
+          $stage = Join-Path $env:RUNNER_TEMP 'launcher-release/springboot-launcher'
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          $files = @($package.files) + @('package.json','package-lock.json','.npmrc','Open Dashboard.cmd')
+          foreach ($entry in ($files | Select-Object -Unique)) {
+            $relative = $entry.TrimEnd('/','\')
+            $source = Join-Path $env:GITHUB_WORKSPACE $relative
+            $target = Join-Path $stage $relative
+            New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
+            Copy-Item -LiteralPath $source -Destination $target -Recurse -Force
+          }
+          $archive = "springboot-launcher-$env:GITHUB_REF_NAME-windows.zip"
+          Compress-Archive -LiteralPath $stage -DestinationPath $archive
+          $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $archive" | Set-Content checksums.txt -Encoding utf8NoBOM
+          Copy-Item scripts/install.ps1 install.ps1
+          Copy-Item site/install.cmd install.cmd
+      - name: 发布正式版本及校验文件
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $deadline = (Get-Date).AddMinutes(7)
+          do {
+            $runs = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs?head_sha=$env:GITHUB_SHA&per_page=20" | ConvertFrom-Json
+            $verified = @($runs.workflow_runs | Where-Object { $_.name -eq 'Windows 自动验证' -and $_.conclusion -eq 'success' })
+            if ($verified.Count) { break }
+            if ((Get-Date) -gt $deadline) { throw '该提交尚无通过的 Windows 自动验证，不发布发行版' }
+            Start-Sleep -Seconds 15
+          } while ($true)
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $notes = "docs/releases/$version.md"
+          if (-not (Test-Path -LiteralPath $notes)) { throw '缺少本版本的发布说明' }
+          gh release create $env:GITHUB_REF_NAME "springboot-launcher-$env:GITHUB_REF_NAME-windows.zip" checksums.txt install.ps1 install.cmd --verify-tag --title "Spring Boot Launcher $version" --notes-file $notes --repo $env:GITHUB_REPOSITORY

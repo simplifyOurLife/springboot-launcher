@@ -40,6 +40,35 @@ test('并发分组操作按顺序提交，写盘失败不会丢失原状态或�
   assert.equal(store.snapshot().folders.length, 3);
 });
 
+test('服务可在组内排序、跨组插入，顺序持久化并拒绝无效锚点', async () => {
+  let saved;
+  const store=createWorkspaceStore({persist:async next=>{saved=structuredClone(next);}});
+  const folderA=(await store.command({type:'folder.create',name:'A'})).folders[0].id;
+  const folderB=(await store.command({type:'folder.create',name:'B'})).folders[1].id;
+  const info=key=>({projectKey:key,dir:path.resolve(key)});
+  await store.importProjects(['a','b','c'].map(info),folderA);
+  await store.importProjects(['x','y'].map(info),folderB);
+  const keys=(data,id)=>data.projects.filter(p=>p.folderId===id).map(p=>p.projectKey);
+  await store.command({type:'project.move',projectKey:'c',folderId:folderA,beforeProjectKey:'a'});
+  assert.deepEqual(keys(store.snapshot(),folderA),['c','a','b']);
+  await store.command({type:'project.move',projectKey:'c',folderId:folderA,beforeProjectKey:null});
+  assert.deepEqual(keys(saved,folderA),['a','b','c']);
+  await store.command({type:'project.move',projectKey:'b',folderId:folderB,beforeProjectKey:'y'});
+  assert.deepEqual(keys(saved,folderA),['a','c']);assert.deepEqual(keys(saved,folderB),['x','b','y']);
+  const restored=createWorkspaceStore({initialState:saved});
+  assert.deepEqual(keys(restored.snapshot(),folderB),['x','b','y']);
+  await assert.rejects(store.command({type:'project.move',projectKey:'a',folderId:folderA,beforeProjectKey:'y'}),{code:'INVALID_ARGUMENT'});
+  await assert.rejects(store.command({type:'project.move',projectKey:'a',folderId:folderA,beforeProjectKey:123}),{code:'INVALID_ARGUMENT'});
+  assert.deepEqual(keys(store.snapshot(),folderA),['a','c']);
+  await store.command({type:'project.move',projectKey:'x',folderId:null,beforeProjectKey:null});
+  await store.command({type:'project.move',projectKey:'y',folderId:null,beforeProjectKey:'x'});
+  assert.deepEqual(keys(store.snapshot(),null),['y','x']);
+  await assert.rejects(store.command({type:'project.move',projectKey:'z',folderId:folderB,beforeProjectKey:'missing'},{projectInfo:info('z')}),{code:'INVALID_ARGUMENT'});
+  assert.equal(store.snapshot().projects.some(p=>p.projectKey==='z'),false);
+  await store.command({type:'project.move',projectKey:'z',folderId:folderB,beforeProjectKey:'b'},{projectInfo:info('z')});
+  assert.deepEqual(keys(store.snapshot(),folderB),['z','b']);
+});
+
 test('工作区拒绝无效名称、未知参数和损坏的分组引用', async () => {
   const store = createWorkspaceStore();
   await assert.rejects(store.command({type: 'folder.create', name: ' '}), {code: 'INVALID_ARGUMENT'});

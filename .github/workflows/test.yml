@@ -21,4 +21,12 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       # Windows 集成测试会同时启动多个 PowerShell／Node 进程，串行运行避免抢占启动等待预算。
       - run: npm run test:ci
+      - name: 隔离安装与升级验证
+        run: |
+          ./tests/installer-flow.ps1
+          Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
+          & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File ./tests/installer-flow.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: 隔离快捷方式启动验证
+        run: ./tests/shortcut-flow.ps1
       - run: npm pack --dry-run --json --ignore-scripts

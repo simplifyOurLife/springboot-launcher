@@ -55,7 +55,6 @@ input[type="checkbox"] { width: 14px; height: 14px; margin: 0; accent-color: var
 .notice.success { background: #e7f2eb; color: #246047; border-color: #cfdfd4; }
 .notice .icon-button { color: inherit; }
 .workspace { display: grid; grid-template-columns: 258px minmax(0, 1fr); height: calc(100dvh - 64px); min-height: 640px; }
-body:has(.notice:not([hidden])) .workspace { height: calc(100dvh - 115px); }
 .sidebar { display: flex; flex-direction: column; min-height: 0; padding: 24px 14px 16px; background: var(--sidebar); border-right: 1px solid var(--border); }
 .sidebar-heading { display: flex; align-items: center; justify-content: space-between; margin: 0 7px 14px; }
 .sidebar-heading > div { display: flex; align-items: center; gap: 9px; }
@@ -295,7 +294,6 @@ html[data-log-focus="true"] #log-service-name { display: block; }
   .connection i { height: 6px; width: 6px; }
   .mobile-menu { display: inline-flex; width: 25px; }
   .workspace { display: flex; flex-direction: column; height: auto; min-height: calc(100dvh - 60px); }
-  body:has(.notice:not([hidden])) .workspace { height: auto; }
   .sidebar { display: none; border-right: 0; border-bottom: 1px solid var(--border); padding: 18px; max-height: 65dvh; overflow: auto; flex-shrink: 0; }
   html[data-sidebar-open="true"] .sidebar { display: flex; }
   .project-list { flex-shrink: 0; max-height: 180px; }
@@ -535,3 +533,57 @@ html[lang="en"] .empty-state h1 { font-size: clamp(28px, 3vw, 44px); }
 @media (max-width: 640px) { .workspace-label { display: none; } .connection { font-size: 10px; } .topbar { gap: 8px; padding-inline: 12px; } .topbar-brand { gap: 8px; } .brand { font-size: 12px; gap: 6px; } }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+/* 拖动显示精确的插入位置；与文件夹整体接收区分开，避免误以为只能移动分组。 */
+.project-row.drop-before::before,.project-row.drop-after::after { content: ''; position: absolute; left: 7px; right: 7px; height: 2px; background: var(--accent); border-radius: 2px; pointer-events: none; }
+.project-row.drop-before::before { top: -2px; }
+.project-row.drop-after::after { bottom: -2px; }
+.project-row.dragging { pointer-events: none; }
+.select-value,.select-option-label { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.select-value .select-label-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.select-option-tag { flex-shrink: 0; display: inline-block; padding: 2px 6px; border: 1px solid #c6dcd1; border-radius: 4px; color: #466853; background: #edf4ef; font-size: 10px; font-weight: 400; line-height: 1.4; white-space: nowrap; }
+.config .advanced-config { border: 1px solid var(--border); border-radius: 7px; background: #f7faf8; }
+.config .advanced-config > summary { padding: 14px 16px; gap: 16px; min-height: 62px; border-bottom: 0; }
+.config .advanced-config > summary:hover { background: #edf4ef; border-radius: 7px; }
+.advanced-config > summary .advanced-heading { display: flex; flex-direction: column; gap: 6px; margin: 0; color: #405b4c; }
+.advanced-heading strong { font-size: 12px; font-weight: 550; }
+.advanced-config > summary .advanced-heading > span { margin: 0; font-size: 11px; line-height: 1.5; color: #64776b; }
+.advanced-config > summary .chevron { margin-left: auto; }
+.config .advanced-config[open] > summary { border-bottom: 1px solid var(--border); }
+.advanced-config .advanced-grid { padding: 18px 16px; gap: 18px 20px; }
+.config-note { padding-top: 2px; padding-bottom: 17px; }
+.config-note p { margin: 0; line-height: 1.8; }
+.config-note p+p { margin-top: 6px; }
+/* 原生 dialog 负责焦点圈定与 Esc，内容样式和现有工作台保持一致。 */
+.confirm-dialog { width: min(420px,calc(100vw - 32px)); padding: 25px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: #263b30; box-shadow: 0 20px 70px #122c3538; }
+.confirm-dialog::backdrop { background: #182a2466; }
+.dialog-heading { display: flex; align-items: center; gap: 13px; margin-bottom: 22px; }
+.dialog-mark { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 9px; background: #fbefeb; color: #aa4c3b; flex-shrink: 0; }
+.dialog-heading h2 { margin: 0 0 5px; font-size: 17px; font-weight: 600; }
+.dialog-heading p { margin: 0; font-size: 12px; color: var(--text-muted); }
+.dialog-project { display: flex; align-items: center; gap: 10px; padding: 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--sidebar); overflow-wrap: anywhere; }
+.dialog-project .icon { color: #6db33f; }
+.dialog-project strong { min-width: 0; font-size: 13px; font-weight: 550; }
+#remove-dialog-description { color: var(--text-muted); font-size: 12px; line-height: 1.8; margin: 14px 0 23px; }
+.dialog-actions { display: flex; justify-content: flex-end; align-items: center; gap: 9px; }
+.dialog-actions .button { min-width: 80px; padding: 9px 15px; }
+.button.danger { border-color: #a94636; background: #a94636; color: #fff; }
+.button.danger:not(:disabled):hover { border-color: #903b2d; background: #903b2d; }
+
+/* 消息浮层不占据文档流，出现和消失不会改变工作台高度。 */
+.notice { position: fixed; z-index: 30; top: 18px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(640px,calc(100vw - 32px)); padding: 12px 15px 12px 18px; border: 1px solid #e2d2b5; border-radius: 8px; box-shadow: 0 6px 24px #1a37251a; align-items: flex-start; gap: 14px; line-height: 1.6; }
+.notice .icon-button { width: 22px; height: 22px; flex-shrink: 0; }
+.notice .icon-button .icon { width: 14px; height: 14px; }
+.app-version { display: inline-flex; align-items: center; gap: 7px; padding: 5px 7px; border: 1px solid var(--border); border-radius: 5px; background: #f5f8f6; color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+#app-update-badge { color: var(--accent); font-weight: 600; }
+.update-dialog { width: min(520px,calc(100vw - 32px)); }
+.update-mark { color: var(--accent); background: var(--accent-soft); }
+.update-versions { display: grid; grid-template-columns: 1fr 1fr; padding: 14px; gap: 16px; margin: 0 0 16px; border-radius: 6px; background: var(--sidebar); }
+.update-versions dt { font-size: 11px; color: var(--text-muted); margin-bottom: 7px; }
+.update-versions dd { margin: 0; font: 16px var(--mono); }
+#update-status,#update-mode { font-size: 12px; line-height: 1.8; color: #4e6657; }
+#update-mode { margin: 15px 0 17px; }
+#update-notes { max-height: 180px; overflow: auto; padding: 12px; font: 12px/1.7 var(--mono); background: #f5f8f6; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--border); border-radius: 6px; }
+.update-dialog .dialog-actions { margin-top: 22px; flex-wrap: wrap; }
+@media (max-width:640px) { .app-version { padding: 4px; font-size: 10px; }.topbar-brand { gap: 7px; } }
+@media (prefers-reduced-motion:no-preference) { .notice:not([hidden]) { animation: message-enter 160ms ease-out; }@keyframes message-enter { from { opacity:0; transform:translate(-50%,-8px); }to { opacity:1; transform:translate(-50%,0); } } }

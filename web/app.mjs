@@ -3,21 +3,25 @@ import {createViewState, reduceEvent} from './state.mjs';
 import {buildLogView, splitLogLevel, formatUptime, availableActions, stepMatch} from './presentation.mjs';
 import {setupSidebarResize} from './sidebar-resize.mjs';
 import {setupSelectFields, refreshSelectFields} from './select-field.mjs';
+import {createToast} from './toast.mjs';
+import {setupAppUpdates} from './app-updates.mjs';
 
 const $ = id => document.getElementById(id);
+const toast=createToast($('notice'),$('notice-text'),$('dismiss-notice'));
 const projects = new Map();
 const configIds = ['profile', 'port', 'mode', 'jdk', 'jdk-manual', 'jar', 'main-class', 'classpath', 'jvm', 'health-url'];
 const statusNames = {stopped: '待启动', starting: '启动中', running: '运行中', stopping: '停止中', exited: '已退出', failed: '启动失败', orphaned: '需要人工确认'};
 const nameOf = dir => dir.split(/[\\/]/).filter(Boolean).at(-1) || dir;
 const statusName = service => service?.status === 'starting' && service.phase === 'preparing' ? t("准备中") : service?.status === 'stopped' && service.startedAt ? t("已停止") : t(statusNames[service?.status] || '已添加');
 let selected = null, stream = null, state = createViewState(), busy = false, pendingAction = null, pendingProject = null;
-let renderTimer = null, noticeTimer = null, copyTimer = null, displayedText = null, displayedQuery = null;
+let renderTimer = null, copyTimer = null, displayedText = null, displayedQuery = null;
 let logView = buildLogView('');
 let workspace = {folders: [], projects: []}, editingFolderId = null;
 const collapsedFolders = new Set();
 let searchSnapshot = null, searchRanges = [], searchActive = -1, displayedActive = -1, followBeforeSearch = true;
 let draggedProject = null, keyboardProject = null;
 let importRequestId = null;
+let removalProject = null, removalReturnFocus = null;
 
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -30,11 +34,7 @@ function icon(name) {
 }
 
 function notice(message, success = false) {
-  clearTimeout(noticeTimer);
-  $('notice-text').textContent = message;
-  $('notice').classList.toggle('success', success);
-  $('notice').hidden = false;
-  if (success) noticeTimer = setTimeout(() => $('notice').hidden = true, 5000);
+  toast.show(message,success);
 }
 
 async function request(url, args = null) {
@@ -81,6 +81,7 @@ function setBusy(value, action = null) {
     $(id).lastChild.textContent = importing ? t("正在导入…") : t("导入项目");
   }
   $('folder-form').setAttribute('aria-busy', String(value && action === 'folder'));
+  $('refresh').classList.toggle('action-pending', value && action === 'refresh');
   renderService();
   renderProjects();
 }
@@ -160,7 +161,7 @@ function projectRow(p) {
   const remove = actionButton(t('移除服务 {0}', name.textContent), 'trash', 'project-remove', () => removeProject(p.projectKey));
   remove.disabled = !canRemoveProject(p);
   actions.append(remove);
-  row.title = t("拖动到文件夹或未分组；键盘：选中项目后 Ctrl+Shift+M，再聚焦目标文件夹按 Enter");
+  row.title = t("拖动调整顺序或移入其他文件夹；Ctrl+Shift+↑/↓ 调整顺序，Ctrl+Shift+M 移动到文件夹");
   // 内部项目拖动使用指针捕获，兼容嵌入式浏览器，不接收外部路径或文件拖入。
   button.addEventListener('pointerdown', event => {
     if (busy || event.button !== 0) return;
@@ -170,28 +171,55 @@ function projectRow(p) {
     if (!origin || busy) return;
     if (!dragged && Math.hypot(event.clientX-origin[0], event.clientY-origin[1]) < 6) return;
     dragged = true;draggedProject = p.projectKey;row.classList.add('dragging');
-    for (const target of document.querySelectorAll('.drop-target')) target.classList.remove('drop-target');
-    document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-drop-folder]')?.classList.add('drop-target');
+    for (const target of document.querySelectorAll('.drop-target, .drop-before, .drop-after')) target.classList.remove('drop-target','drop-before','drop-after');
+    const target = projectDropTarget(event, p);
+    if (target?.row) target.row.classList.add(target.after ? 'drop-after' : 'drop-before');
+    else target?.group?.classList.add('drop-target');
+    const list=$('projects'),rect=list.getBoundingClientRect();
+    if(event.clientY<rect.top+28)list.scrollTop-=12;else if(event.clientY>rect.bottom-28)list.scrollTop+=12;
   });
   button.addEventListener('pointerup', event => {
     if (!origin) return;
-    const target = dragged ? document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-drop-folder]') : null;
+    const target = dragged ? projectDropTarget(event, p) : null;
     origin = null;button.releasePointerCapture(event.pointerId);clearDrag();
     if (target) {
-      const folderId = target.dataset.dropFolder || null;
-      if ((p.folderId || null) !== folderId) void changeWorkspace({type: 'project.move', projectKey: p.projectKey, folderId});
+      void changeWorkspace({type: 'project.move', projectKey: p.projectKey, folderId: target.folderId, beforeProjectKey: target.beforeProjectKey});
     }
   });
-  button.addEventListener('pointercancel', () => {origin = null;dragged = false;clearDrag();});
+  button.addEventListener('pointercancel', () => {origin = null;dragged = false;clearDrag();renderProjects();});
   button.addEventListener('dragstart', event => event.preventDefault());
   button.addEventListener('keydown', event => { if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'm') {event.preventDefault();keyboardProject = p.projectKey;notice(t("项目已选定，请聚焦目标文件夹或未分组，按 Enter 移动。"), true);} });
+  button.addEventListener('keydown', event => {
+    if(!event.ctrlKey||!event.shiftKey||!['ArrowUp','ArrowDown'].includes(event.key)||busy)return;
+    event.preventDefault();const siblings=orderedProjects().filter(item=>(item.folderId||null)===(p.folderId||null)),index=siblings.findIndex(item=>item.projectKey===p.projectKey),up=event.key==='ArrowUp';
+    if(up?index<=0:index>=siblings.length-1)return;
+    const beforeProjectKey=up?siblings[index-1].projectKey:siblings[index+2]?.projectKey||null;
+    void changeWorkspace({type:'project.move',projectKey:p.projectKey,folderId:p.folderId||null,beforeProjectKey});
+  });
   row.append(button, actions);
   return row;
 }
 
 function clearDrag() {
   draggedProject = null;
-  for (const node of document.querySelectorAll('.dragging, .drop-target')) node.classList.remove('dragging', 'drop-target');
+  for (const node of document.querySelectorAll('.dragging, .drop-target, .drop-before, .drop-after')) node.classList.remove('dragging', 'drop-target', 'drop-before', 'drop-after');
+}
+
+function orderedProjects() {
+  const imported=new Set(workspace.projects.map(item=>item.projectKey));
+  return [...workspace.projects.map(item=>projects.get(item.projectKey)).filter(Boolean),...[...projects.values()].filter(item=>!imported.has(item.projectKey))];
+}
+
+function projectDropTarget(event, project) {
+  const hit=document.elementFromPoint(event.clientX,event.clientY),group=hit?.closest('[data-drop-folder]');
+  if(!group)return null;
+  const row=hit.closest('.project-row'),folderId=group.dataset.dropFolder||null;
+  if(row?.dataset.projectKey===project.projectKey)return null;
+  if(!row)return {group,folderId,beforeProjectKey:null};
+  const rect=row.getBoundingClientRect(),after=event.clientY>=rect.top+rect.height/2;
+  const siblings=orderedProjects().filter(item=>item.projectKey!==project.projectKey&&(item.folderId||null)===folderId),index=siblings.findIndex(item=>item.projectKey===row.dataset.projectKey);
+  if(index<0)return null;
+  return {group,row,after,folderId,beforeProjectKey:after?siblings[index+1]?.projectKey||null:row.dataset.projectKey};
 }
 
 function dropZone(node, folderId) {
@@ -218,7 +246,7 @@ function renderProjects() {
   $('project-count').textContent = String(projects.size);
   const liveCount = [...projects.values()].filter(p => ['running', 'starting'].includes(p.service?.status)).length;
   $('workspace-summary').textContent = projects.size ? t("{0} 个项目 / {1} 个运行中", projects.size, liveCount) : t("添加项目后即可启动服务");
-  const all = [...projects.values()], matchesProject = p => !query || `${p.name || nameOf(p.dir)} ${p.dir}`.toLocaleLowerCase().includes(query);
+  const all = orderedProjects(), matchesProject = p => !query || `${p.name || nameOf(p.dir)} ${p.dir}`.toLocaleLowerCase().includes(query);
   let shown = 0;
   for (const folder of workspace.folders) {
     const children = all.filter(p => p.folderId === folder.id);
@@ -337,7 +365,7 @@ function restoreConfig(p) {
   const option = (value, label, disabled = false) => {const node = document.createElement('option');node.value = value;node.textContent = label;node.disabled = disabled;return node;};
   $('profile').replaceChildren(option('', t("自动 · {0}", info.activeProfile || t("应用默认"))));
   const profiles = new Set([...(info.profiles || []), info.activeProfile, p.service?.profile, config.profile].filter(Boolean));
-  for (const name of profiles) $('profile').append(option(name, name === info.activeProfile ? t("{0} · 项目默认", name) : name));
+  for (const name of profiles) {const node=option(name,name);if(name===info.activeProfile)node.dataset.badge=t("项目默认");$('profile').append(node);}
   $('jdk').replaceChildren(option('', t("自动选择兼容 JDK")));
   for (const jdk of info.jdks || []) $('jdk').append(option(jdk.home, `${jdk.major ? `Java ${jdk.major}` : t("未知版本")} · ${jdk.vendor || nameOf(jdk.home)} · ${jdk.home}${jdk.compatible ? '' : `（${translateMessage(jdk.reason)}）`}`, !jdk.compatible));
   if (config.jdk && config.jdk !== '__custom__' && !(info.jdks || []).some(jdk => jdk.home === config.jdk)) $('jdk').append(option(config.jdk, t("上次使用 · {0}", config.jdk)));
@@ -446,14 +474,14 @@ function renderLogs() {
   $('search-prev').disabled = !logView.matched;
   $('search-next').disabled = !logView.matched;
   $('search-close').disabled = !searching;
-  $('search-status').hidden = !searching;
+  $('search-status').hidden = !searching || state.dismissedHints.includes('search');
   $('follow').disabled = searching;
   $('pause').disabled = searching;
   $('log-gap').hidden = !state.gap || state.gapDismissed;
-  $('log-warning').hidden = !state.persistenceError;
-  $('log-warning').textContent = translateMessage(state.persistenceError);
-  $('log-limit').hidden = !logView.omitted && !logView.clippedHighlights;
-  $('log-limit').textContent = [logView.omitted ? t("显示第 {0} 至 {1} 行，检索覆盖整个缓冲，可跳转到较早命中。", logView.lines[0].number, logView.lines.at(-1).number) : '', logView.clippedHighlights ? t("当前窗口限制了高亮数量，仍可定位全部匹配。") : ''].filter(Boolean).join(' ');
+  $('log-warning').hidden = !state.persistenceError || state.dismissedHints.includes('persistence');
+  $('log-warning-text').textContent = translateMessage(state.persistenceError);
+  $('log-limit').hidden = (!logView.omitted && !logView.clippedHighlights) || state.dismissedHints.includes('limit');
+  $('log-limit-text').textContent = [logView.omitted ? t("显示第 {0} 至 {1} 行，检索覆盖整个缓冲，可跳转到较早命中。", logView.lines[0].number, logView.lines.at(-1).number) : '', logView.clippedHighlights ? t("当前窗口限制了高亮数量，仍可定位全部匹配。") : ''].filter(Boolean).join(' ');
   $('log-meta').textContent = state.paused ? t("已暂停显示") : logView.total ? t("{0} 行", logView.total) : t("等待输出");
   $('log-meta').classList.toggle('paused', state.paused);
   $('log-size').textContent = `${(state.textBytes / 1024).toFixed(1)} / 512 KiB`;
@@ -467,6 +495,7 @@ function renderLogs() {
 
 function startSearch() {
   if (searchSnapshot !== null) return;
+  state=reduceEvent(state,{type:'restore-hint',hint:'search'});
   searchSnapshot = state.displayText;
   searchRanges = state.displayRanges;
   followBeforeSearch = $('follow').checked;
@@ -600,7 +629,7 @@ function openFolderForm(folder = null) {
 }
 
 async function changeWorkspace(command) {
-  if (busy) return;
+  if (busy) return false;
   sidebarError();setBusy(true, 'folder');
   try {
     const next=await request('/api/workspace/command', command);
@@ -608,7 +637,8 @@ async function changeWorkspace(command) {
     applyWorkspace(next);
     if (command.type === 'folder.remove') notice(t("文件夹已移除，项目已回到未分组。磁盘文件保持原样。"), true);
     if (command.type === 'project.remove') notice(t("项目已从启动器移除，磁盘文件保持原样。"), true);
-  } catch (error) { sidebarError(error.message);renderProjects(); }
+    return true;
+  } catch (error) { sidebarError(error.message);renderProjects();return false; }
   finally { setBusy(false); }
 }
 
@@ -659,6 +689,9 @@ async function operate(action, key = selected) {
   setBusy(true, action);
   if(action==='stop')notice(t("{0}：正在停止服务，日志将持续输出至完全退出…", p.name || nameOf(p.dir)),true);
   try {
+    // 从列表启动另一项时，先切换工作区与日志订阅，再提交启动请求。
+    if(['start','restart'].includes(action)&&selected!==key)await selectProject(key);
+    if(action==='start'&&!$('port').checkValidity()){$('config').open=true;$('port').reportValidity();return;}
     const args = {dir: p.dir};
     if (action === 'start') {
       await loadRuntimeOptions(p);
@@ -705,16 +738,33 @@ function canRemoveProject(p) {
 function removeProject(projectKey) {
   const p=projects.get(projectKey);
   if(!canRemoveProject(p))return;
-  if(confirm(t("从启动器移除 {0}？磁盘项目和日志文件不会删除。", p.name || nameOf(p.dir))))void changeWorkspace({type:'project.remove',projectKey:p.projectKey});
+  removalProject=projectKey;removalReturnFocus=document.activeElement;
+  $('remove-dialog-name').textContent=p.name||nameOf(p.dir);$('remove-dialog-error').hidden=true;
+  $('remove-dialog-confirm').disabled=false;$('remove-dialog-cancel').disabled=false;
+  $('remove-project-dialog').showModal();
 }
+$('remove-dialog-cancel').addEventListener('click',()=>$('remove-project-dialog').close());
+$('remove-project-dialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();});
+$('remove-project-dialog').addEventListener('close',()=>{removalProject=null;const focus=removalReturnFocus?.isConnected?removalReturnFocus:$('projects').querySelector('.project-item')||$('import-project');focus.focus({preventScroll:true});removalReturnFocus=null;});
+$('remove-dialog-confirm').addEventListener('click',async()=>{
+  const p=projects.get(removalProject);
+  if(!canRemoveProject(p)){$('remove-dialog-error').textContent=t("服务状态已变化，请停止服务后再移除。");$('remove-dialog-error').hidden=false;return;}
+  $('remove-dialog-confirm').disabled=true;$('remove-dialog-cancel').disabled=true;
+  $('remove-project-dialog').setAttribute('aria-busy','true');
+  const success=await changeWorkspace({type:'project.remove',projectKey:p.projectKey});
+  if(success)$('remove-project-dialog').close();
+  else{$('remove-dialog-error').textContent=$('sidebar-error').textContent;$('remove-dialog-error').hidden=false;}
+  $('remove-dialog-confirm').disabled=false;$('remove-dialog-cancel').disabled=false;
+  $('remove-project-dialog').setAttribute('aria-busy','false');
+});
 $('remove-project').addEventListener('click', () => removeProject(selected));
 for (const id of ['import-project', 'import-empty', 'focus-add']) $(id).addEventListener('click', () => void importProject());
 $('create-folder').addEventListener('click', () => openFolderForm());
 $('folder-form').addEventListener('submit', saveFolder);
 $('folder-cancel').addEventListener('click', () => { $('folder-form').hidden = true;editingFolderId = null;$('create-folder').focus(); });
 $('folder-name').addEventListener('input', () => folderError());
-$('dismiss-notice').addEventListener('click', () => $('notice').hidden = true);
 $('dismiss-log-gap').addEventListener('click', () => {state=reduceEvent(state,{type:'dismiss-gap'});renderLogs();});
+for(const button of document.querySelectorAll('[data-dismiss-log-hint]'))button.addEventListener('click',()=>{state=reduceEvent(state,{type:'dismiss-hint',hint:button.dataset.dismissLogHint});renderLogs();});
 $('project-search').addEventListener('input', renderProjects);
 $('copy-build-command').addEventListener('click',()=>{
   // 原生选择保留 Ctrl+C 与右键复制入口，兼容嵌入式浏览器的剪贴板隔离。
@@ -741,7 +791,7 @@ $('refresh').addEventListener('click', async () => {
     const services = await call('spring_boot_status');
     for (const service of services) mergeService(service);
     if (!selected && services.length) await selectProject(services[0].projectKey);
-    notice(t("共享状态已刷新。"), true);
+    notice(t("已同步项目列表与服务状态，不会重启服务或重新扫描项目。"), true);
   } catch (error) { notice(error.message); }
   finally { setBusy(false); }
 });
@@ -777,6 +827,7 @@ $('copy').addEventListener('click', async () => {
 });
 
 window.addEventListener('keydown', event => {
+  if($('remove-project-dialog').open||$('app-update-dialog').open)return;
   const editing = event.target instanceof Element && (event.target.matches('input, textarea, select') || event.target.isContentEditable);
   if (event.key === 'Escape' && keyboardProject) {
     event.preventDefault();keyboardProject = null;notice(t("已取消移动项目。"), true);return;
@@ -800,7 +851,7 @@ window.addEventListener('pagehide', () => {
   stream?.close();
   clearInterval(uptimeTimer);
   clearTimeout(renderTimer);
-  clearTimeout(noticeTimer);
+  toast.dispose();
   clearTimeout(copyTimer);
 });
 
@@ -818,6 +869,7 @@ async function init() {
     $('auth-help').hidden = true;$('notice').hidden = true;
     for (const service of services) mergeService(service);
     connected(true, t("本机后台已连接"));
+    void appUpdates.load();
     if (selected && projects.has(selected)) connectEvents(projects.get(selected).dir);
     else if (projects.size) await selectProject(projects.keys().next().value);
     else { renderProjects(); connectEvents(); }
@@ -832,9 +884,11 @@ setupLanguage(() => {
   if(p){restoreConfig(p);renderService();}
   displayedText=null;renderLogs();
   updateCollapseLabels();
+  appUpdates.render();
 });
 setupSidebarResize();
 setupSelectFields();
+const appUpdates=setupAppUpdates({request,notice});
 void init();
 window.addEventListener('hashchange', () => { if (new URLSearchParams(location.hash.slice(1)).has('ticket')) void init(); });
 $('copy-dashboard-command').addEventListener('click', async () => {

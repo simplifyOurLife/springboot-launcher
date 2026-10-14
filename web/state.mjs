@@ -1,12 +1,14 @@
 const encoder=new TextEncoder(),decoder=new TextDecoder(),MAX_EVENTS=2000;
 export function trimText(value,maxBytes){const bytes=encoder.encode(value);if(bytes.length<=maxBytes)return value;let start=Math.max(0,bytes.length-maxBytes);while(start<bytes.length&&(bytes[start]&0xc0)===0x80)start++;return decoder.decode(bytes.subarray(start));}
-export function createViewState({maxBytes=524288}={}){return {projectKey:null,maxBytes,logs:[],text:'',textBytes:0,logBytes:0,displayText:'',ranges:[],displayRanges:[],receivedSeq:0,runStartSeq:0,gap:false,gapDismissed:false,paused:false,persistenceError:null};}
+export function createViewState({maxBytes=524288}={}){return {projectKey:null,maxBytes,logs:[],text:'',textBytes:0,logBytes:0,displayText:'',ranges:[],displayRanges:[],receivedSeq:0,runStartSeq:0,gap:false,gapDismissed:false,dismissedHints:[],paused:false,persistenceError:null};}
 export function reduceEvent(state,event){
   if(event.type==='project')return {...createViewState({maxBytes:state.maxBytes}),projectKey:event.projectKey};
   if(event.type==='pause')return {...state,paused:true};
   if(event.type==='resume')return {...state,paused:false,displayText:state.text,displayRanges:state.ranges};
   if(event.type==='gap')return {...state,gap:true};
   if(event.type==='dismiss-gap')return {...state,gapDismissed:true};
+  if(event.type==='dismiss-hint')return {...state,dismissedHints:[...new Set([...state.dismissedHints,event.hint])]};
+  if(event.type==='restore-hint')return {...state,dismissedHints:state.dismissedHints.filter(hint=>hint!==event.hint)};
   if(['snapshot','log'].includes(event.type)){
     const data=event.data;
     if(state.projectKey&&data.projectKey&&data.projectKey!==state.projectKey)return state;
