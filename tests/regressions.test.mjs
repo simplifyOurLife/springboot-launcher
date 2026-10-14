@@ -40,12 +40,14 @@ test('兄弟模块新 classes 必须优先于依赖目录里的旧 jar',async t=
 
 test('后台正常关闭必须保留未人工确认的遗留服务保护',async t=>{
   const f=await fixture();t.after(f.cleanup);const home=path.join(f.root,'orphan-home'),id=await normalizeProjectDir(f.dir);await preparePrivateHome(home);
-  await atomicState(path.join(home,'services.json'),[{...id,pid:12345,status:'running'}]);let instanceId=randomUUID();await atomicState(path.join(home,'backend.lock'),{ownerPid:process.pid,instanceId});
+  // 自动恢复会清理不存在的 PID；此用例必须用真实存活进程验证跨后台保护，不能使用任意假 PID。
+  await atomicState(path.join(home,'services.json'),[{...id,pid:process.pid,status:'running'}]);let instanceId=randomUUID();await atomicState(path.join(home,'backend.lock'),{ownerPid:process.pid,instanceId});
   let backend=await runDaemon({home,instanceId});t.after(()=>backend.close());let connection=JSON.parse(await readFile(path.join(home,'instance.json'),'utf8'));
   assert.equal((await createBackendClient(connection).shutdown()).ok,true);await waitFor(async()=>{try{await readFile(path.join(home,'backend.lock'));return false;}catch(e){return e.code==='ENOENT';}});
   const records=JSON.parse(await readFile(path.join(home,'services.json'),'utf8'));assert.equal(records[0]?.projectKey,id.projectKey);
   instanceId=randomUUID();await atomicState(path.join(home,'backend.lock'),{ownerPid:process.pid,instanceId});backend=await runDaemon({home,instanceId});connection=JSON.parse(await readFile(path.join(home,'instance.json'),'utf8'));
   assert.equal((await createBackendClient(connection).invoke('spring_boot_start',{dir:f.dir})).error.code,'ORPHANED_SERVICE');
+  assert.equal(process.kill(process.pid,0),true,'恢复与关闭不得终止遗留进程');
 });
 
 test('陈旧锁回收必须等待正在进行的实例交接，不能删除新一代后台',async t=>{
