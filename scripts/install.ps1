@@ -7,6 +7,14 @@ $script:Repository = 'https://github.com/simplifyOurLife/springboot-launcher'
 function Send-InstallStatus([string]$Message, $Queue) {
     if ($Queue) { $Queue.Enqueue($Message) } else { Write-Host $Message }
 }
+function Get-DownloadText($Response) {
+    # GitHub 的文本资产可能使用 application/octet-stream，PowerShell 会返回 byte[]。
+    # 始终按严格 UTF-8 解码后解析校验行，不能因响应类型不同跳过 SHA-256。
+    $content = $Response.Content
+    if ($content -is [byte[]]) { $content = (New-Object Text.UTF8Encoding($false,$true)).GetString($content) }
+    if ($content -isnot [string] -or $content.Length -gt 262144) { throw '下载的文本校验信息无效。' }
+    return $content.TrimStart([char]0xFEFF)
+}
 function Invoke-InstallCommand([string]$FilePath, [string[]]$Arguments, $Queue) {
     [void](Get-Command $FilePath -ErrorAction Stop)
     $previousPreference = $ErrorActionPreference
@@ -85,7 +93,7 @@ function Get-InstallNode([string]$Root, [string]$Stage, $Installed, $Queue) {
     if ($nodeVersion -notmatch '^v22\.\d+\.\d+$') { throw 'Node.js 版本信息无效。' }
     $nodeName = "node-$nodeVersion-win-$architecture"
     $archiveName = "$nodeName.zip"
-    $checksums = (Invoke-WebRequest -UseBasicParsing -Uri "https://nodejs.org/dist/$nodeVersion/SHASUMS256.txt" -TimeoutSec 30).Content
+    $checksums = Get-DownloadText (Invoke-WebRequest -UseBasicParsing -Uri "https://nodejs.org/dist/$nodeVersion/SHASUMS256.txt" -TimeoutSec 30)
     $hashLine = @($checksums -split '\r?\n' | Where-Object { $_ -match ('^[a-fA-F0-9]{64}\s+' + [regex]::Escape($archiveName) + '$') })
     if ($hashLine.Count -ne 1) { throw 'Node.js 校验信息无效。' }
     $nodeZip = Join-Path $Stage $archiveName
@@ -146,7 +154,7 @@ function Invoke-Install($Options, $Queue) {
             Send-InstallStatus "正在下载 $($release.version)…" $Queue
             $zip = Join-Path $stage $release.name
             Invoke-WebRequest -UseBasicParsing -Uri $release.archive -OutFile $zip -TimeoutSec 300
-            $checksums = (Invoke-WebRequest -UseBasicParsing -Uri $release.checksums -TimeoutSec 30).Content
+            $checksums = Get-DownloadText (Invoke-WebRequest -UseBasicParsing -Uri $release.checksums -TimeoutSec 30)
             $hashLine = @($checksums -split '\r?\n' | Where-Object { $_ -match ('^[a-fA-F0-9]{64}\s+\*?' + [regex]::Escape($release.name) + '$') })
             if ($hashLine.Count -ne 1 -or (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ine ($hashLine[0] -split '\s+')[0]) { throw '安装包 SHA-256 校验失败，旧版本保持不变。' }
             Send-InstallStatus '校验通过，正在准备新版文件…' $Queue

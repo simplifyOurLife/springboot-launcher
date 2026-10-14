@@ -6,7 +6,7 @@
 
 在 Codex 或 Claude Code 中操作本地 Spring Boot 服务，在同一网页面板实时查看日志，无需为启停服务打开 IDEA。
 
-当前版本为 **1.0.0**，新增独立打开面板、目录选择安装向导和正式版本更新。查看[本版发布说明](docs/releases/1.0.0.md)和[简短验收表](docs/verification/alpha-acceptance.md)。源码仓库：[simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher)。未发布 npm 包。
+当前版本为 **1.0.1**，新增独立打开面板、目录选择安装向导和正式版本更新。查看[本版发布说明](docs/releases/1.0.1.md)和[简短验收表](docs/verification/alpha-acceptance.md)。源码仓库：[simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher)。未发布 npm 包。
 
 ## 推荐安装与独立使用
 
@@ -18,7 +18,7 @@
 
 ![1.0.0：服务分组、Profile 与彩色实时日志](docs/assets/panel-v1.0.0-workbench.jpg)
 
-截图来自当前 1.0.0 页面，使用隔离模拟项目和演示日志，不含真实业务数据，也不代表真实 Spring Boot 验收。展示版本入口、服务分组、Profile、启停按钮和 ANSI 彩色日志。
+截图展示 1.0 系列页面（采集版本 1.0.0），使用隔离模拟项目和演示日志，不含真实业务数据，也不代表真实 Spring Boot 验收。展示版本入口、服务分组、Profile、启停按钮和 ANSI 彩色日志。
 
 项目栏与服务信息可以分别收起，日志几乎占满整个工作区，顶部仍保留当前服务名称和展开入口。
 

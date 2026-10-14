@@ -6,7 +6,7 @@ $testParent=Join-Path $repositoryRoot '.superpowers/tmp'
 New-Item -ItemType Directory -Path $testParent -Force | Out-Null
 $testRoot=Assert-ChildPath $testParent (Join-Path $testParent ('installer-test-'+[guid]::NewGuid().ToString('N')))
 New-Item -ItemType Directory -Path $testRoot | Out-Null
-$script:testVersion='0.2.0';$script:tampered=$false
+$script:testVersion='0.2.0';$script:tampered=$false;$script:binaryChecksum=$true
 $fakeNode=Join-Path $testRoot 'mock-node.cmd'
 [IO.File]::WriteAllText($fakeNode,"@echo off`r`necho fixture-warning 1>&2`r`nif `"%SBL_TEST_BUSY%`"==`"1`" if `"%~2`"==`"daemon`" exit /b 1`r`nexit /b 0`r`n")
 $mockNpm=Join-Path $testRoot 'node_modules/npm/bin'
@@ -22,7 +22,13 @@ function Get-InstallNode {
 function Invoke-WebRequest {
     param($Uri,$OutFile,$TimeoutSec,[switch]$UseBasicParsing)
     if($OutFile){Copy-Item -LiteralPath (Join-Path $testRoot 'fixture.zip') -Destination $OutFile}
-    else{return @{Content=if($script:tampered){('0'*64)+'  fixture.zip'}else{(Get-FileHash (Join-Path $testRoot 'fixture.zip') -Algorithm SHA256).Hash+'  fixture.zip'}}}
+    else{
+        $checksumText=if($script:tampered){('0'*64)+'  fixture.zip'}else{(Get-FileHash (Join-Path $testRoot 'fixture.zip') -Algorithm SHA256).Hash+'  fixture.zip'}
+        # GitHub 实际以 application/octet-stream 返回校验文件；首次安装覆盖 UTF-8 BOM 与 byte[]。
+        $responseContent=$checksumText
+        if($script:binaryChecksum){$responseContent=[Text.Encoding]::UTF8.GetBytes(([char]0xFEFF)+$checksumText)}
+        return @{Content=$responseContent}
+    }
 }
 function New-FixtureArchive {
     param([string]$Version)
@@ -54,6 +60,7 @@ try {
     # 使用模拟 Node 实际执行安装根入口，确保无需传 -Root，且不启动真实后台。
     & (Join-Path $target 'open-dashboard.ps1')
     Write-Host '通过：隔离首次安装与中文空格目录'
+    $script:binaryChecksum=$false
     $script:testVersion='0.3.0';New-FixtureArchive '0.3.0';$script:tampered=$true
     $failed=$false;try{Invoke-Install $options $null|Out-Null}catch{$failed=$true}
     Assert-Test $failed '篡改安装包未被拒绝'

@@ -2,13 +2,15 @@
 
 ## 选择安装方式
 
-普通使用者从[官网](https://simplifyOurLife.github.io/springboot-launcher/#get-started)下载 `install.cmd` 并双击，或直接前往 [1.0.0 Release](https://github.com/simplifyOurLife/springboot-launcher/releases/tag/v1.0.0)。引导从本仓库最新正式 Release 下载安装器，打开 Windows 安装向导；网络需允许 GitHub 与 npm，缺少 Node.js 时还需访问 nodejs.org。无需 Git 或手工替换安装路径。
+普通使用者从[官网](https://simplifyOurLife.github.io/springboot-launcher/#get-started)下载 `install.cmd` 并双击，或直接前往 [1.0.1 Release](https://github.com/simplifyOurLife/springboot-launcher/releases/tag/v1.0.1)。引导从本仓库最新正式 Release 下载安装器，打开 Windows 安装向导；网络需允许 GitHub 与 npm，缺少 Node.js 时还需访问 nodejs.org。无需 Git 或手工替换安装路径。
 
 向导默认放在当前用户的 Programs 目录，也可点击“选择目录”。选择已有托管安装可升级，选择其他位置会建立独立安装；非空的普通目录和源码目录不会被覆盖。
 
 可以勾选创建桌面和开始菜单快捷方式，也可按需接入已安装的 Codex／Claude Code。未勾选的客户端配置不会修改；Claude Code 使用当前用户范围，所有工程可用。完成后重新打开客户端检查 MCP 连接。
 
 ## 每天如何打开
+
+从 1.0.0 升级到 1.0.1 时，请重新下载官网或 Release 的最新 install.cmd，并选择原安装目录。1.0.0 内置向导存在校验文件解析问题，不能通过它完成本次修复。
 
 双击桌面或开始菜单中的 **Spring Boot Launcher**，后台按需启动并打开当前有效的本机页面。未创建快捷方式时，也可双击安装目录的 `Open Dashboard.cmd`。关闭网页或 AI 聊天不停止托管服务；无需先在 CMD 启动 Node 后台。
 
@@ -24,9 +26,9 @@
 
 ## 升级规则
 
-左上角版本号打开以下窗口，可检查更新、创建桌面入口或打开安装向导。截图使用 1.0.0 的公开示例界面。
+左上角版本号打开以下窗口，可检查更新、创建桌面入口或打开安装向导。截图使用 1.0.1 的公开示例界面。
 
-![1.0.0 工作台左上角提供版本与更新入口](../assets/panel-v1.0.0-workbench.jpg)
+![1.0.1 工作台左上角提供版本与更新入口](../assets/panel-v1.0.1-workbench.jpg)
 
 - 左上角显示当前版本，后台只检查本项目公开 GitHub Release，不发送工程路径、运行状态或日志。检查结果缓存半小时，点击“检查更新”可刷新；没有网络时不影响现有服务。
 - 点击“打开升级向导”后，先下载发行包、验证 SHA-256 并准备锁定依赖，随后才尝试退出旧后台。

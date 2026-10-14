@@ -6,7 +6,7 @@
 
 Manage local Spring Boot services from Codex, Claude Code, or a shared web dashboard. Start and stop services, organize projects, and follow their logs without opening an IDE.
 
-**Version 1.0.0.** Windows installation, independent dashboard access, and stable-release updates are now implemented. See the [release notes](docs/releases/1.0.0.md) and [acceptance checklist](docs/verification/alpha-acceptance.md), currently in Chinese. Source: [simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher). No npm package has been published.
+**Version 1.0.1.** Windows installation, independent dashboard access, and stable-release updates are now implemented. See the [release notes](docs/releases/1.0.1.md) and [acceptance checklist](docs/verification/alpha-acceptance.md), currently in Chinese. Source: [simplifyOurLife/springboot-launcher](https://github.com/simplifyOurLife/springboot-launcher). No npm package has been published.
 
 ## What is this project?
 
@@ -16,7 +16,7 @@ The backend starts on demand. You do not need to start a separate Node server in
 
 ![Version 1.0.0 dashboard with profiles and colored live logs](docs/assets/panel-v1.0.0-workbench-en.jpg)
 
-Screenshots show the 1.0.0 interface with isolated sample projects and simulated output, not business data or proof of real Spring Boot acceptance. Both screenshots use English. The dashboard supports English and Simplified Chinese, with a language selector in the top bar. It follows the browser language on first use and remembers an explicit selection for the current dashboard origin. A new backend port uses a separate browser storage scope.
+Screenshots show the 1.0 interface (captured on 1.0.0) with isolated sample projects and simulated output, not business data or proof of real Spring Boot acceptance. Both screenshots use English. The dashboard supports English and Simplified Chinese, with a language selector in the top bar. It follows the browser language on first use and remembers an explicit selection for the current dashboard origin. A new backend port uses a separate browser storage scope.
 
 ![Version 1.0.0 log-focused view with project and service sections collapsed](docs/assets/panel-v1.0.0-log-focus-en.jpg)
 
