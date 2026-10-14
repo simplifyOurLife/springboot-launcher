@@ -18,7 +18,9 @@
 
 ## 发布后核对
 
-同一提交的 Windows CI、Pages 部署、Release 资产、在线 SHA-256 与隔离实际安装结果在执行后补充。发布前无法把尚未存在的发行资产写成已验证。
+发布提交 `b7d39fc1979f546edcc164f3c6dc46ab274cd97e` 的 [Windows CI](https://github.com/simplifyOurLife/springboot-launcher/actions/runs/38499373106) 和 [发行工作流](https://github.com/simplifyOurLife/springboot-launcher/actions/runs/38499750231) 均通过；[v1.0.0 Release](https://github.com/simplifyOurLife/springboot-launcher/releases/tag/v1.0.0) 已公开，标签与资产保留。
+
+真实在线安装发现模拟字符串响应未覆盖 GitHub 的二进制校验文件响应，导致原 1.0.0 安装器误报 SHA-256 失败。未绕过校验，未覆盖旧安装。该问题已在 1.0.1 修复并完成正式资产全新安装和 1.0.0 升级验证，详情见 [1.0.1 在线安装验证](release-1.0.1.md)。新安装及升级请重新下载最新安装引导，不使用 1.0.0 内置旧向导。
 
 ## 未覆盖
 

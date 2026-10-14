@@ -22,6 +22,10 @@
 3. 对同一已验证提交创建 v1.0.1 标签并推送。发行工作流再次检查版本一致及同 SHA 的 CI 成功后发布 ZIP、SHA-256 和安装入口。
 4. 验证 [Release](https://github.com/simplifyOurLife/springboot-launcher/releases/tag/v1.0.1)、[官网](https://simplifyOurLife.github.io/springboot-launcher/)、在线下载及隔离真实安装，记录实际结果；不移动已公开标签。
 
+## 发布结果（2026-10-14）
+
+1.0.0 与 1.0.1 标签均已公开，未移动历史标签。1.0.1 的同提交 Windows CI、发行工作流和官网部署通过，正式下载、全新隔离安装及从 1.0.0 升级验证通过；推荐安装 1.0.1。详见[实际验证记录](verification/release-1.0.1.md)。
+
 ## 验收边界
 
 本机服务已由使用者实际体验并反馈修复；自动验证不替代所有项目布局和运行环境验收。复杂 Maven Profile／插件、不同企业代理、无 Node 的全新 Windows 环境和真实 Codex／Claude Code 自动注册及交叉操作仍需分别验证。保留[人工验收表](verification/alpha-acceptance.md)，未执行项不勾选。
