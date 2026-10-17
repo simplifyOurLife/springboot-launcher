@@ -1,5 +1,7 @@
 # Spring Boot Launcher
 
+[![M8ven Score](https://m8ven.ai/badge/mcp/simplifyourlife-springboot-launcher-1k6n8j?v=0800860b7b7f5b370b45822336bfb85d)](https://m8ven.ai/mcp/simplifyourlife-springboot-launcher-1k6n8j?s=readme)
+
 **English** · [简体中文](README.zh-CN.md)
 
 [Project website](https://simplifyOurLife.github.io/springboot-launcher/) · [Getting started](https://simplifyOurLife.github.io/springboot-launcher/#get-started)
