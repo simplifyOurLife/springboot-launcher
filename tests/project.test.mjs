@@ -68,6 +68,15 @@ test('不满足版本要求的 JDK 返回明确错误',async t=>{
   const f=await fixture();t.after(f.cleanup);
   await assert.rejects(resolveJdk({jdkHome:f.jdkHome,requiredJavaMajor:21,probeVersion:async()=> 'openjdk version "17.0.2"'}),{code:'JDK_NOT_FOUND'});
 });
+
+test('Windows JDK 探测不会把路径中的命令片段作为 Java 版本输出',{skip:process.platform!=='win32'},async t=>{
+  const f=await fixture();t.after(f.cleanup);
+  const jdkHome=path.join(f.root,'JDK & echo openjdk version 99.0.1 & rem 路径');
+  await mkdir(path.join(jdkHome,'bin'),{recursive:true});
+  await writeFile(path.join(jdkHome,'bin/java.exe'),'非可执行的测试文件');
+  // 一旦错误启用 shell，echo 就可能伪造可接受的 Java 版本；直接执行文件必须拒绝此 JDK。
+  await assert.rejects(resolveJdk({jdkHome,requiredJavaMajor:17}),{code:'JDK_NOT_FOUND'});
+});
 test('依赖兄弟模块的过期 classes 被拒绝',async t=>{
   const f=await fixture('classes');t.after(f.cleanup);const sibling=path.join(f.root,'common');
   await mkdir(path.join(sibling,'target/classes'),{recursive:true});

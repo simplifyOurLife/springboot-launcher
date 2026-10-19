@@ -20,3 +20,11 @@ test('初始化仍拒绝接管带普通文件的非空目录，不覆盖原文�
   await assert.rejects(preparePrivateHome(home),{code:'INVALID_ARGUMENT'});
   assert.equal(await readFile(path.join(home,'user.txt'),'utf8'),'保留');
 });
+
+test('Windows ACL 脚本将空格、方括号及命令元字符作为原样目录参数',{skip:process.platform!=='win32'},async t=>{
+  const f=await fixture(),home=path.join(f.root,'后台 [ACL] & echo literal; $(Write-Output changed)');t.after(f.cleanup);
+  assert.equal(await preparePrivateHome(home),home);
+  assert.equal(await readFile(path.join(home,'.launcher-owned'),'utf8'),'springboot-launcher/v1');
+  // 再次调用须能核验同一个目录的 ACL，而不是展开 $() 或按通配符处理 []。
+  assert.equal(await preparePrivateHome(home),home);
+});
